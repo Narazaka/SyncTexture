@@ -29,6 +29,8 @@ void ForceStartSync();
 
 ## 更新履歴
 
+- 1.1.0
+  - add: SyncTextureManager / SyncTexturesOnLateJoin
 - 1.0.0
   - リリース
 
