@@ -26,7 +26,9 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public bool ShowProgress = true;
         [SerializeField]
-        UdonBehaviour CallbackListener;
+        public UdonBehaviour CallbackListener;
+        [SerializeField]
+        public bool SyncEnabled = true;
 
         [UdonSynced]
         ushort[] SyncColors;
@@ -38,14 +40,14 @@ namespace net.narazaka.vrchat.sync_texture
         ushort[] ReceiveColors = new ushort[0];
 
         [PublicAPI]
-        public bool CanStartSync { get => SyncIndex == -1 && ReadIndex == -1; }
+        public bool CanStartSync { get => SyncIndex < 0 && ReadIndex < 0; }
 
         [PublicAPI]
         public float Progress
         {
             get
             {
-                if (SyncIndex == -1) return 0f;
+                if (SyncIndex < 0) return 0f;
                 var packUnitLength = ColorEncoder.PackUnitLength(SendFormat);
                 var dataLen = Target.width * Target.height * packUnitLength;
                 return (float)SyncIndex * BulkCount / dataLen;
@@ -58,7 +60,7 @@ namespace net.narazaka.vrchat.sync_texture
         [PublicAPI]
         public bool StartSync()
         {
-            if (!CanStartSync) return false;
+            if (!CanStartSync || !SyncEnabled) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
             Callback(nameof(SyncTextureCallbackListener.OnPreSync));
             PrepareSync();
@@ -73,6 +75,20 @@ namespace net.narazaka.vrchat.sync_texture
             return StartSync();
         }
 
+        [PublicAPI]
+        public bool CancelSync()
+        {
+            if (CanStartSync) return false;
+            Networking.SetOwner(Networking.LocalPlayer, gameObject);
+            ReadIndex = -2;
+            SyncIndex = -2;
+            SyncColors = new ushort[0];
+            QueueSerialization();
+            Debug.Log($"[SyncTexture] Send Canceled");
+            Callback(nameof(SyncTextureCallbackListener.OnSyncCanceled));
+            return true;
+        }
+
         public void PrepareSync()
         {
             var size = Source.width * Source.height;
@@ -83,6 +99,10 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void ReadPixels()
         {
+            if (ReadIndex == -2)
+            {
+                return;
+            }
             ReadIndex++;
             var startHeight = ReadIndex * GetPixelsBulkCount;
             Debug.Log($"[SyncTexture] ReadPixels from height={startHeight}");
@@ -102,6 +122,10 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void SyncNext()
         {
+            if (SyncIndex == -2)
+            {
+                return;
+            }
             ++SyncIndex;
             var len = Colors.Length;
             var startIndex = SyncIndex * BulkCount;
@@ -121,6 +145,10 @@ namespace net.narazaka.vrchat.sync_texture
 
         public override void OnPostSerialization(SerializationResult result)
         {
+            if (SyncIndex == -2)
+            {
+                return;
+            }
             if (SyncIndex == -1)
             {
                 Debug.Log($"[SyncTexture] Sent");
@@ -136,13 +164,19 @@ namespace net.narazaka.vrchat.sync_texture
 
         public override void OnDeserialization()
         {
-            if (SyncIndex == -1)
+            if (SyncIndex < 0)
             {
                 if (ReceiveColors == null || ReceiveColors.Length == 0) return;
                 if (!ShowProgress)
                 {
                     Target.SetPixels(ColorEncoder.Unpack(ReceiveColors, SendFormat));
                     Target.Apply();
+                }
+                if (SyncIndex == -2)
+                {
+                    Debug.Log($"[SyncTexture] Receive Canceled");
+                    Callback(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
+                    return;
                 }
                 Debug.Log($"[SyncTexture] Received");
                 Callback(nameof(SyncTextureCallbackListener.OnReceiveComplete));

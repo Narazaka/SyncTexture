@@ -8,6 +8,7 @@ using System.Linq;
 namespace net.narazaka.vrchat.sync_texture.editor
 {
     [CustomEditor(typeof(SyncTexture))]
+    [CanEditMultipleObjects]
     public class SyncTextureEditor : Editor
     {
         // cf. https://docs.unity3d.com/ScriptReference/Texture2D.SetPixel.html
@@ -43,6 +44,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         SerializedProperty SyncInterval;
         SerializedProperty ShowProgress;
         SerializedProperty CallbackListener;
+        SerializedProperty SyncEnabled;
         bool ShowCalllbackHelp;
 
         void OnEnable()
@@ -55,6 +57,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             SyncInterval = serializedObject.FindProperty("SyncInterval");
             ShowProgress = serializedObject.FindProperty("ShowProgress");
             CallbackListener = serializedObject.FindProperty("CallbackListener");
+            SyncEnabled = serializedObject.FindProperty("SyncEnabled");
         }
 
         public override void OnInspectorGUI()
@@ -105,10 +108,17 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSync));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncComplete));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncCanceled));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceive));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveComplete));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
                 }
+            }
+            EditorGUILayout.PropertyField(SyncEnabled);
+            if (!SyncEnabled.boolValue)
+            {
+                EditorGUILayout.HelpBox("SyncEnabled is false. Set true at runtime.", MessageType.Warning);
             }
             serializedObject.ApplyModifiedProperties();
         }
