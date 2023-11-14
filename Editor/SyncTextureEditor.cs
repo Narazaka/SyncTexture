@@ -44,6 +44,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
         SerializedProperty SyncInterval;
         SerializedProperty ShowProgress;
         SerializedProperty CallbackListener;
+        SerializedProperty PrepareCallbackListener;
+        SerializedProperty PrepareCallbackAsync;
         SerializedProperty SyncEnabled;
         bool ShowCalllbackHelp;
 
@@ -57,6 +59,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
             SyncInterval = serializedObject.FindProperty("SyncInterval");
             ShowProgress = serializedObject.FindProperty("ShowProgress");
             CallbackListener = serializedObject.FindProperty("CallbackListener");
+            PrepareCallbackListener = serializedObject.FindProperty("PrepareCallbackListener");
+            PrepareCallbackAsync = serializedObject.FindProperty("PrepareCallbackAsync");
             SyncEnabled = serializedObject.FindProperty("SyncEnabled");
         }
 
@@ -98,12 +102,14 @@ namespace net.narazaka.vrchat.sync_texture.editor
             }
             EditorGUILayout.PropertyField(ShowProgress);
             EditorGUILayout.PropertyField(CallbackListener);
+            EditorGUILayout.PropertyField(PrepareCallbackListener);
+            EditorGUILayout.PropertyField(PrepareCallbackAsync);
             ShowCalllbackHelp = EditorGUILayout.Foldout(ShowCalllbackHelp, "Callback Help");
             if (ShowCalllbackHelp)
             {
                 using (new EditorGUI.IndentLevelScope())
                 {
-                    EditorGUILayout.HelpBox("callbacks:", MessageType.Info);
+                    EditorGUILayout.HelpBox("CallbackListener callbacks:", MessageType.Info);
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnPreSync));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSync));
@@ -113,6 +119,11 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceive));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveComplete));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
+                    EditorGUILayout.HelpBox("PrepareCallbackListener callbacks:", MessageType.Info);
+                    EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepare));
+                    EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
+                    EditorGUILayout.HelpBox("async PrepareCallbackListener should call this:", MessageType.Info);
+                    EditorGUILayout.TextField(nameof(SyncTexture.OnPrepared));
                 }
             }
             EditorGUILayout.PropertyField(SyncEnabled);

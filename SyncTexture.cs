@@ -28,6 +28,10 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public UdonBehaviour CallbackListener;
         [SerializeField]
+        public UdonBehaviour PrepareCallbackListener;
+        [SerializeField]
+        bool PrepareCallbackAsync;
+        [SerializeField]
         public bool SyncEnabled = true;
 
         [UdonSynced]
@@ -39,8 +43,10 @@ namespace net.narazaka.vrchat.sync_texture
         ushort[] Colors = new ushort[0];
         ushort[] ReceiveColors = new ushort[0];
 
+        bool Prepareing;
+
         [PublicAPI]
-        public bool CanStartSync { get => SyncIndex < 0 && ReadIndex < 0; }
+        public bool CanStartSync { get => SyncIndex < 0 && ReadIndex < 0 && !Prepareing; }
 
         [PublicAPI]
         public float Progress
@@ -63,15 +69,22 @@ namespace net.narazaka.vrchat.sync_texture
             if (!CanStartSync || !SyncEnabled) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
             Callback(nameof(SyncTextureCallbackListener.OnPreSync));
-            PrepareSync();
+            if (PrepareCallbackAsync)
+            {
+                Prepareing = true;
+            }
+            PrepareCallback(nameof(SyncTexturePrepareCallbackListener.OnPrepare));
+            if (!Prepareing)
+            {
+                PrepareSync();
+            }
             return true;
         }
 
         [PublicAPI]
         public bool ForceStartSync()
         {
-            ReadIndex = -1;
-            SyncIndex = -1;
+            CancelSync();
             return StartSync();
         }
 
@@ -82,11 +95,30 @@ namespace net.narazaka.vrchat.sync_texture
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
             ReadIndex = -2;
             SyncIndex = -2;
+            if (Prepareing)
+            {
+                PrepareCallback(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
+            }
+            Prepareing = false;
             SyncColors = new ushort[0];
             QueueSerialization();
             Debug.Log($"[SyncTexture] Send Canceled");
             Callback(nameof(SyncTextureCallbackListener.OnSyncCanceled));
             return true;
+        }
+
+
+        /// <summary>
+        /// called by <see cref="PrepareCallbackListener"/>
+        /// </summary>
+        [PublicAPI]
+        public void OnPrepared()
+        {
+            if (Prepareing)
+            {
+                Prepareing = false;
+                PrepareSync();
+            }
         }
 
         public void PrepareSync()
@@ -212,6 +244,14 @@ namespace net.narazaka.vrchat.sync_texture
             if (CallbackListener != null)
             {
                 CallbackListener.SendCustomEvent(eventName);
+            }
+        }
+
+        void PrepareCallback(string eventName)
+        {
+            if (PrepareCallbackListener != null)
+            {
+                PrepareCallbackListener.SendCustomEvent(eventName);
             }
         }
 
