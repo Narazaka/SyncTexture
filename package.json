@@ -1,0 +1,16 @@
+{
+  "name": "net.narazaka.vrchat.sync-texture",
+  "version": "1.0.0",
+  "displayName": "SyncTexture",
+  "description": "Sync Texture2D",
+  "author": {
+    "name": "Narazaka",
+    "url": "https://github.com/Narazaka"
+  },
+  "license": "Zlib",
+  "type": "tool",
+  "url" : "https://github.com/Narazaka/SyncTexture.git",
+  "vpmDependencies": {
+    "com.vrchat.worlds": ">=3.0.9"
+  }
+}
