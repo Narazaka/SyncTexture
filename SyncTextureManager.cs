@@ -43,17 +43,17 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void SendNext()
         {
-            SendingIndex++;
-            if (SendingIndex >= SyncTextures.Length)
-            {
-                SendingIndex = -1;
-                RequestSerialization();
-                return;
-            }
-            while (!SyncTextures[SendingIndex].SyncEnabled)
+            do
             {
                 SendingIndex++;
+                if (SendingIndex >= SyncTextures.Length)
+                {
+                    SendingIndex = -1;
+                    RequestSerialization();
+                    return;
+                }
             }
+            while (!SyncTextures[SendingIndex].SyncEnabled);
             RequestSerialization();
             SyncTextures[SendingIndex].StartSync();
         }
