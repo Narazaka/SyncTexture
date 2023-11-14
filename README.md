@@ -33,6 +33,8 @@ void ForceStartSync();
 
 ## 更新履歴
 
+- 1.2.0
+  - 同期の前に呼ばれるOnPrepare/OnPrepared APIを追加
 - 1.1.0
   - add: SyncTextureManager / SyncTexturesOnLateJoin
 - 1.0.0
