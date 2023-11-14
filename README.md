@@ -20,7 +20,11 @@ Texture2Dを同期します。Render TextureからTexture2Dへの変換などは
 
 基本的に他のUdonからの制御を前提にしています。
 
+- SyncTextureManager: 順番に同期
+- SyncTexturesOnLateJoin: late joinerが来たら順番に同期を開始
+
 ```
+// SyncTexture
 bool CanStartSync;
 float Progress;
 void StartSync(); // take ownership and send
