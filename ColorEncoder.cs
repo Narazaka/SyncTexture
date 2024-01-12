@@ -9,37 +9,47 @@ namespace net.narazaka.vrchat.sync_texture
     {
         public static int PackUnitLength(SendFormat sendFormat)
         {
-            if (sendFormat == SendFormat.RGB565)
+            switch (sendFormat)
             {
-                return 1;
-            }
-            else
-            {
-                return 4;
+                case SendFormat.RGB565:
+                    return 1;
+                case SendFormat.R16G16B16A16:
+                    return 4;
+                case SendFormat.R16:
+                    return 1;
+                default:
+                    return 0;
             }
         }
 
         public static ushort[] Pack(Color[] colors, SendFormat sendFormat)
         {
-            if (sendFormat == SendFormat.RGB565)
+            switch (sendFormat)
             {
-                return PackRGB565(colors);
-            }
-            else
-            {
-                return PackR16G16B16A16(colors);
+                case SendFormat.RGB565:
+                    return PackRGB565(colors);
+                case SendFormat.R16G16B16A16:
+                    return PackR16G16B16A16(colors);
+                case SendFormat.R16:
+                    return PackR16(colors);
+                default:
+                    return null;
             }
         }
 
         public static void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength, SendFormat sendFormat)
         {
-            if (sendFormat == SendFormat.RGB565)
+            switch (sendFormat)
             {
-                PackRGB565(colors, startColorIndex, data, startPixelIndex, pixelLength);
-            }
-            else
-            {
-                PackR16G16B16A16(colors, startColorIndex, data, startPixelIndex, pixelLength);
+                case SendFormat.RGB565:
+                    PackRGB565(colors, startColorIndex, data, startPixelIndex, pixelLength);
+                    break;
+                case SendFormat.R16G16B16A16:
+                    PackR16G16B16A16(colors, startColorIndex, data, startPixelIndex, pixelLength);
+                    break;
+                case SendFormat.R16:
+                    PackR16(colors, startColorIndex, data, startPixelIndex, pixelLength);
+                    break;
             }
         }
 
@@ -80,15 +90,34 @@ namespace net.narazaka.vrchat.sync_texture
             }
         }
 
+        public static ushort[] PackR16(Color[] colors)
+        {
+            var len = colors.Length;
+            var data = new ushort[len];
+            PackR16(colors, 0, data, 0, len);
+            return data;
+        }
+
+        public static void PackR16(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
+        {
+            for (int i = 0; i < pixelLength; i++)
+            {
+                data[startPixelIndex + i] = (ushort)(colors[startColorIndex + i].r * ushort.MaxValue);
+            }
+        }
+
         public static Color[] Unpack(ushort[] data, SendFormat sendFormat)
         {
-            if (sendFormat == SendFormat.RGB565)
+            switch (sendFormat)
             {
-                return UnpackRGB565(data);
-            }
-            else
-            {
-                return UnpackR16G16B16A16(data);
+                case SendFormat.RGB565:
+                    return UnpackRGB565(data);
+                case SendFormat.R16G16B16A16:
+                    return UnpackR16G16B16A16(data);
+                case SendFormat.R16:
+                    return UnpackR16(data);
+                default:
+                    return null;
             }
         }
 
@@ -123,6 +152,23 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 var index = (startPixelIndex + i) * 4;
                 colors[startColorIndex + i] = new Color(data[index] * rate, data[index + 1] * rate, data[index + 2] * rate, data[index + 3] * rate);
+            }
+        }
+
+        public static Color[] UnpackR16(ushort[] data)
+        {
+            var len = data.Length;
+            var colors = new Color[len];
+            UnpackR16(data, 0, colors, 0, len);
+            return colors;
+        }
+
+        public static void UnpackR16(ushort[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength)
+        {
+            var rate = 1f / ushort.MaxValue;
+            for (int i = 0; i < pixelLength; i++)
+            {
+                colors[startColorIndex + i] = new Color(data[startPixelIndex + i] * rate, 0, 0, 1);
             }
         }
 

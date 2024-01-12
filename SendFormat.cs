@@ -7,5 +7,6 @@ namespace net.narazaka.vrchat.sync_texture {
     {
         RGB565,
         R16G16B16A16,
+        R16,
     }
 }
