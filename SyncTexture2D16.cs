@@ -11,26 +11,26 @@ namespace net.narazaka.vrchat.sync_texture
     public class SyncTexture2D16 : SyncTexture
     {
         [SerializeField]
-        public SendFormat SendFormat;
+        public SendFormat16 SendFormat;
         [UdonSynced]
         ushort[] SyncColors;
         ushort[] Colors = new ushort[0];
         ushort[] ReceiveColors = new ushort[0];
 
-        protected override int PackUnitLength => ColorEncoder.PackUnitLength(SendFormat);
+        protected override int PackUnitLength => ColorEncoder16.PackUnitLength(SendFormat);
         protected override void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength)
         {
-            ColorEncoder.Pack(colors, 0, Colors, startPixelIndex, pixelLength, SendFormat);
+            ColorEncoder16.Pack(colors, 0, Colors, startPixelIndex, pixelLength, SendFormat);
         }
         protected override Color[] UnpackReceiveColors()
         {
-            return ColorEncoder.Unpack(ReceiveColors, SendFormat);
+            return ColorEncoder16.Unpack(ReceiveColors, SendFormat);
         }
         protected override Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length)
         {
             var partColors = new ushort[length];
             Array.Copy(ReceiveColors, startReceiveIndex, partColors, 0, length);
-            return ColorEncoder.Unpack(partColors, SendFormat);
+            return ColorEncoder16.Unpack(partColors, SendFormat);
         }
 
         protected override void InitializeSyncColors(int size)

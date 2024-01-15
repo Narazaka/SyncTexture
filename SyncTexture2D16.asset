@@ -794,7 +794,7 @@ MonoBehaviour:
       Data: 47|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: net.narazaka.vrchat.sync_texture.SendFormat, SyncTexture
+      Data: net.narazaka.vrchat.sync_texture.SendFormat16, SyncTexture
     - Name: 
       Entry: 8
       Data: 

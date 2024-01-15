@@ -5,49 +5,49 @@ using UnityEngine;
 
 namespace net.narazaka.vrchat.sync_texture
 {
-    public class ColorEncoder
+    public class ColorEncoder16
     {
-        public static int PackUnitLength(SendFormat sendFormat)
+        public static int PackUnitLength(SendFormat16 sendFormat)
         {
             switch (sendFormat)
             {
-                case SendFormat.RGB565:
+                case SendFormat16.RGB565:
                     return 1;
-                case SendFormat.R16G16B16A16:
+                case SendFormat16.R16G16B16A16:
                     return 4;
-                case SendFormat.R16:
+                case SendFormat16.R16:
                     return 1;
                 default:
                     return 0;
             }
         }
 
-        public static ushort[] Pack(Color[] colors, SendFormat sendFormat)
+        public static ushort[] Pack(Color[] colors, SendFormat16 sendFormat)
         {
             switch (sendFormat)
             {
-                case SendFormat.RGB565:
+                case SendFormat16.RGB565:
                     return PackRGB565(colors);
-                case SendFormat.R16G16B16A16:
+                case SendFormat16.R16G16B16A16:
                     return PackR16G16B16A16(colors);
-                case SendFormat.R16:
+                case SendFormat16.R16:
                     return PackR16(colors);
                 default:
                     return null;
             }
         }
 
-        public static void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength, SendFormat sendFormat)
+        public static void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength, SendFormat16 sendFormat)
         {
             switch (sendFormat)
             {
-                case SendFormat.RGB565:
+                case SendFormat16.RGB565:
                     PackRGB565(colors, startColorIndex, data, startPixelIndex, pixelLength);
                     break;
-                case SendFormat.R16G16B16A16:
+                case SendFormat16.R16G16B16A16:
                     PackR16G16B16A16(colors, startColorIndex, data, startPixelIndex, pixelLength);
                     break;
-                case SendFormat.R16:
+                case SendFormat16.R16:
                     PackR16(colors, startColorIndex, data, startPixelIndex, pixelLength);
                     break;
             }
@@ -106,15 +106,15 @@ namespace net.narazaka.vrchat.sync_texture
             }
         }
 
-        public static Color[] Unpack(ushort[] data, SendFormat sendFormat)
+        public static Color[] Unpack(ushort[] data, SendFormat16 sendFormat)
         {
             switch (sendFormat)
             {
-                case SendFormat.RGB565:
+                case SendFormat16.RGB565:
                     return UnpackRGB565(data);
-                case SendFormat.R16G16B16A16:
+                case SendFormat16.R16G16B16A16:
                     return UnpackR16G16B16A16(data);
-                case SendFormat.R16:
+                case SendFormat16.R16:
                     return UnpackR16(data);
                 default:
                     return null;
