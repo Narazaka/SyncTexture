@@ -8,7 +8,7 @@ using VRC.Udon;
 namespace net.narazaka.vrchat.sync_texture
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
-    public class SyncTexture2D16 : SyncTexture
+    public class SyncTexture2D16 : SyncTexture2D
     {
         [SerializeField]
         public SendFormat16 SendFormat;

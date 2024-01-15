@@ -13,12 +13,6 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public UdonBehaviour PrepareCallbackListener;
         [SerializeField]
-        public Texture2D Source;
-        [SerializeField]
-        public Texture2D Target;
-        [SerializeField]
-        public int GetPixelsBulkCount = 8;
-        [SerializeField]
         public int BulkCount = 5000;
         [SerializeField]
         public float SyncInterval = 1f;
@@ -30,12 +24,10 @@ namespace net.narazaka.vrchat.sync_texture
         [UdonSynced]
         short SyncIndex = -1;
 
-        int ReadIndex = -1;
-
         bool Prepareing;
 
         [PublicAPI]
-        public bool CanStartSync { get => SyncIndex < 0 && ReadIndex < 0 && !Prepareing; }
+        public bool CanStartSync { get => SyncIndex < 0 && !ReadingSource && !Prepareing; }
 
         [PublicAPI]
         public float Progress
@@ -43,15 +35,20 @@ namespace net.narazaka.vrchat.sync_texture
             get
             {
                 if (SyncIndex < 0) return 0f;
-                var dataLen = Target.width * Target.height * PackUnitLength;
+                var dataLen = Width * Height * PackUnitLength;
                 return (float)SyncIndex * BulkCount / dataLen;
             }
         }
 
+        abstract protected int Width { get; }
+        abstract protected int Height { get; }
+        abstract protected bool ReadingSource { get; }
+        abstract protected void StartReadSource();
+        abstract protected void CancelReadSource();
+        abstract protected void ApplyReceiveColors();
+        abstract protected void ApplyReceiveColorsPartial(int minHeight, int height);
+
         abstract protected int PackUnitLength { get; }
-        abstract protected void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength);
-        abstract protected Color[] UnpackReceiveColors();
-        abstract protected Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length);
 
         abstract protected void InitializeSyncColors(int size);
         abstract protected void InitializeSourceColors(int size);
@@ -95,7 +92,7 @@ namespace net.narazaka.vrchat.sync_texture
         {
             if (CanStartSync) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
-            ReadIndex = -2;
+            CancelReadSource();
             SyncIndex = -2;
             if (Prepareing)
             {
@@ -125,33 +122,16 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void PrepareSync()
         {
-            var size = Source.width * Source.height;
+            var size = Width * Height;
             InitializeSourceColors(size);
-            ReadIndex = -1;
-            ReadPixels();
+            StartReadSource();
         }
 
-        public void ReadPixels()
+        protected void StartSyncNext()
         {
-            if (ReadIndex == -2)
-            {
-                return;
-            }
-            ReadIndex++;
-            var startHeight = ReadIndex * GetPixelsBulkCount;
-            Debug.Log($"[SyncTexture] ReadPixels from height={startHeight}");
-            if (startHeight >= Source.height)
-            {
-                Callback(nameof(SyncTextureCallbackListener.OnSyncStart));
-                ReadIndex = -1;
-                SyncIndex = -1;
-                SyncNext();
-                return;
-            }
-            var height = Mathf.Min(GetPixelsBulkCount, Source.height - startHeight);
-            var colors = Source.GetPixels(0, startHeight, Source.width, height);
-            PackColors(colors, 0, startHeight * Source.width, colors.Length);
-            SendCustomEventDelayedFrames(nameof(ReadPixels), 1);
+            Callback(nameof(SyncTextureCallbackListener.OnSyncStart));
+            SyncIndex = -1;
+            SyncNext();
         }
 
         public void SyncNext()
@@ -203,8 +183,7 @@ namespace net.narazaka.vrchat.sync_texture
                 if (ReceiveColorsIsEmpty) return;
                 if (!ShowProgress)
                 {
-                    Target.SetPixels(UnpackReceiveColors());
-                    Target.Apply();
+                    ApplyReceiveColors();
                 }
                 if (SyncIndex == -2)
                 {
@@ -218,7 +197,7 @@ namespace net.narazaka.vrchat.sync_texture
             }
 
             var packUnitLength = PackUnitLength;
-            var receiveColorsLength = Target.width * Target.height;
+            var receiveColorsLength = Width * Height;
             if (SyncIndex == 0 || !ReceiveColorsIsValid(receiveColorsLength))
             {
                 InitializeReceiveColors(receiveColorsLength);
@@ -227,15 +206,12 @@ namespace net.narazaka.vrchat.sync_texture
             CopySyncColorsToReceiveColors(SyncIndex * BulkCount);
             if (ShowProgress)
             {
-                var minHeight = SyncIndex * BulkCount / Target.width / packUnitLength;
-                var maxHeight = Mathf.Min((SyncIndex + 1) * BulkCount / Target.width / packUnitLength, Target.height);
+                var minHeight = SyncIndex * BulkCount / Width / packUnitLength;
+                var maxHeight = Mathf.Min((SyncIndex + 1) * BulkCount / Width / packUnitLength, Height);
                 var height = maxHeight - minHeight;
-                var partColorsLength = height * Target.width * packUnitLength;
-                if (partColorsLength == 0) return;
-                Debug.Log($"[SyncTexture] Deserialized {minHeight}->{maxHeight}({height}) datalen={partColorsLength}");
-                var colors = UnpackReceiveColorsPartial(minHeight * Target.width * packUnitLength, partColorsLength);
-                Target.SetPixels(0, minHeight, Target.width, height, colors);
-                Target.Apply();
+                if (height == 0) return;
+                Debug.Log($"[SyncTexture] Deserialized {minHeight}->{maxHeight}({height}) datalen={height * Width * packUnitLength}");
+                ApplyReceiveColorsPartial(minHeight, height);
             }
             Callback(nameof(SyncTextureCallbackListener.OnReceive));
         }
