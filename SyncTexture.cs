@@ -9,8 +9,10 @@ using VRC.Udon.Common;
 namespace net.narazaka.vrchat.sync_texture
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
-    public class SyncTexture : UdonSharpBehaviour
+    public class SyncTexture : SyncTextureBase
     {
+        [SerializeField]
+        public UdonBehaviour PrepareCallbackListener;
         [SerializeField]
         public Texture2D Source;
         [SerializeField]
@@ -26,13 +28,7 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public bool ShowProgress = true;
         [SerializeField]
-        public UdonBehaviour CallbackListener;
-        [SerializeField]
-        public UdonBehaviour PrepareCallbackListener;
-        [SerializeField]
         bool PrepareCallbackAsync;
-        [SerializeField]
-        public bool SyncEnabled = true;
 
         [UdonSynced]
         ushort[] SyncColors;
@@ -64,7 +60,7 @@ namespace net.narazaka.vrchat.sync_texture
         /// Take ownership and send texture data to other players.
         /// </summary>
         [PublicAPI]
-        public bool StartSync()
+        public override bool StartSync()
         {
             if (!CanStartSync || !SyncEnabled) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
@@ -82,14 +78,14 @@ namespace net.narazaka.vrchat.sync_texture
         }
 
         [PublicAPI]
-        public bool ForceStartSync()
+        public override bool ForceStartSync()
         {
             CancelSync();
             return StartSync();
         }
 
         [PublicAPI]
-        public bool CancelSync()
+        public override bool CancelSync()
         {
             if (CanStartSync) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);

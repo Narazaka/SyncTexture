@@ -32,7 +32,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
 
                 EditorGUI.PropertyField(rect, element);
 
-                var syncTexture = element.objectReferenceValue as SyncTexture;
+                var syncTexture = element.objectReferenceValue as SyncTextureBase;
                 if (syncTexture != null && syncTexture.CallbackListener != TargetUdonBehaviour)
                 {
                     Undo.RecordObject(syncTexture, "set CallbackListener by SyncTextureManagerEditor");
