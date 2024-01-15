@@ -12,6 +12,8 @@ namespace net.narazaka.vrchat.sync_texture
     {
         [SerializeField]
         public bool SyncEnabled = true;
+        [SerializeField]
+        public UdonBehaviour CallbackListener;
 
         public abstract bool StartSync();
         public abstract bool CancelSync();

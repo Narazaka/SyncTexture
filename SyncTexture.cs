@@ -12,6 +12,8 @@ namespace net.narazaka.vrchat.sync_texture
     public class SyncTexture : SyncTextureBase
     {
         [SerializeField]
+        public UdonBehaviour PrepareCallbackListener;
+        [SerializeField]
         public Texture2D Source;
         [SerializeField]
         public Texture2D Target;
@@ -25,10 +27,6 @@ namespace net.narazaka.vrchat.sync_texture
         public float SyncInterval = 1f;
         [SerializeField]
         public bool ShowProgress = true;
-        [SerializeField]
-        public UdonBehaviour CallbackListener;
-        [SerializeField]
-        public UdonBehaviour PrepareCallbackListener;
         [SerializeField]
         bool PrepareCallbackAsync;
 
