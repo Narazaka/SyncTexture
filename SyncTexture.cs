@@ -50,13 +50,13 @@ namespace net.narazaka.vrchat.sync_texture
 
         abstract protected int PackUnitLength { get; }
 
-        abstract protected void InitializeSyncColors(int size);
+        abstract protected void InitializeSyncColors(int pixelLength);
         abstract protected void InitializeSourceColors();
         abstract protected void InitializeReceiveColors();
         abstract protected int SourceColorsLength { get; }
         abstract protected bool ReceiveColorsIsEmpty { get; }
         abstract protected bool ReceiveColorsIsValid { get; }
-        abstract protected void CopySourceColorsToSyncColors(int startSourceIndex, int length);
+        abstract protected void CopySourceColorsToSyncColors(int startSourceIndex, int pixelLength);
         abstract protected void CopySyncColorsToReceiveColors(int startReceiveIndex);
 
         /// <summary>
@@ -141,8 +141,9 @@ namespace net.narazaka.vrchat.sync_texture
             }
             ++SyncIndex;
             var len = SourceColorsLength;
-            var startIndex = SyncIndex * BulkCount;
-            var count = Mathf.Min(BulkCount, len - startIndex);
+            var bulkPixelCount = BulkCount / PackUnitLength;
+            var startIndex = SyncIndex * bulkPixelCount;
+            var count = Mathf.Min(bulkPixelCount, len - startIndex);
             if (count <= 0)
             {
                 SyncIndex = -1;
