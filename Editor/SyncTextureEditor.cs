@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace net.narazaka.vrchat.sync_texture.editor
 {
-    [CustomEditor(typeof(SyncTexture2D16))]
+    [CustomEditor(typeof(SyncTexture))]
     [CanEditMultipleObjects]
     public class SyncTextureEditor : Editor
     {
@@ -123,7 +123,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepare));
                     EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
                     EditorGUILayout.HelpBox("async PrepareCallbackListener should call this:", MessageType.Info);
-                    EditorGUILayout.TextField(nameof(SyncTexture2D16.OnPrepared));
+                    EditorGUILayout.TextField(nameof(SyncTexture.OnPrepared));
                 }
             }
             EditorGUILayout.PropertyField(SyncEnabled);
