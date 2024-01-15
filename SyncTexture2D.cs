@@ -19,15 +19,18 @@ namespace net.narazaka.vrchat.sync_texture
         public int GetPixelsBulkCount = 8;
 
         int ReadIndex = -1;
-        protected override bool ReadingSource => ReadIndex >= 0;
 
-        protected override int Width => Source.width;
-        protected override int Height => Source.height;
+        protected Color32[] SourceColors = new Color32[0];
 
-        abstract protected void StoreColors(Color32[] colors, int startPixelIndex);
+        void StoreSourceColors(Color32[] colors, int startPixelIndex) => Array.Copy(colors, 0, SourceColors, startPixelIndex, colors.Length);
         abstract protected Color[] UnpackReceiveColors();
         abstract protected Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength);
 
+        protected override bool ReadingSource => ReadIndex >= 0;
+        protected override int Width => Source.width;
+        protected override int Height => Source.height;
+        protected override void InitializeSourceColors() => SourceColors = new Color32[Width * Height];
+        protected override int SourceColorsLength => SourceColors.Length;
 
         protected override void StartReadSource()
         {
@@ -62,7 +65,7 @@ namespace net.narazaka.vrchat.sync_texture
                 CancelSync();
                 return;
             }
-            StoreColors(colors, 0);
+            StoreSourceColors(colors, 0);
             StartSyncNext();
         }
 
@@ -89,7 +92,7 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 colors32[i] = colors[i];
             }
-            StoreColors(colors32, startHeight * Source.width);
+            StoreSourceColors(colors32, startHeight * Source.width);
             SendCustomEventDelayedFrames(nameof(ReadPixels), 1);
         }
 
@@ -101,7 +104,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         protected override void ApplyReceiveColorsPartial(int minHeight, int height)
         {
-            var colors = UnpackReceiveColorsPartial(minHeight * Width * PackUnitLength, height * Width * PackUnitLength);
+            var colors = UnpackReceiveColorsPartial(minHeight * Width, height * Width);
             Target.SetPixels(0, minHeight, Width, height, colors);
             Target.Apply();
         }
