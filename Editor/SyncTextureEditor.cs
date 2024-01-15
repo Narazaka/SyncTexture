@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEditor;
 using UdonSharpEditor;
 using System.Linq;
+using System.Reflection;
+using UnityEngine.SceneManagement;
+using VRC.Udon.Serialization.OdinSerializer.Utilities;
 
 namespace net.narazaka.vrchat.sync_texture.editor
 {
@@ -47,6 +50,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         SerializedProperty PrepareCallbackListener;
         SerializedProperty PrepareCallbackAsync;
         SerializedProperty SyncEnabled;
+        bool ShowColorEncoders;
         bool ShowCalllbackHelp;
 
         void OnEnable()
@@ -88,6 +92,31 @@ namespace net.narazaka.vrchat.sync_texture.editor
             CheckTexture2DReadable(Target);
             CheckTexture2DWritable(Target);
             EditorGUILayout.PropertyField(ColorEncoder);
+            if (ShowColorEncoders = EditorGUILayout.Foldout(ShowColorEncoders, $"Select {ColorEncoder.displayName}"))
+            {
+                var targetObject = serializedObject.targetObject;
+                var field = targetObject.GetType().GetField("ColorEncoder");
+                if (field != null)
+                {
+                    Assembly.GetAssembly(field.DeclaringType).GetTypes().Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(field.FieldType)).ToList().ForEach(t =>
+                    {
+                        if (GUILayout.Button(t.Name))
+                        {
+                            var existObject = SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault(o => o.GetComponentInChildren(t));
+                            if (existObject == null)
+                            {
+                                var obj = new GameObject(t.Name);
+                                obj.AddComponent(t);
+                                ColorEncoder.objectReferenceValue = obj.GetComponent(t);
+                            }
+                            else
+                            {
+                                ColorEncoder.objectReferenceValue = existObject.GetComponent(t);
+                            }
+                        }
+                    });
+                }
+            }
             if (ColorEncoder.objectReferenceValue == null)
             {
                 EditorGUILayout.HelpBox("ColorEncoder must be set", MessageType.Error);
