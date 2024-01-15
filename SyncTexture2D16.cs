@@ -15,13 +15,19 @@ namespace net.narazaka.vrchat.sync_texture
         public SendFormat SendFormat;
 
         protected override int PackUnitLength => ColorEncoder.PackUnitLength(SendFormat);
-        protected override void PackColors(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
+        protected override void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength)
         {
-            ColorEncoder.Pack(colors, 0, data, startPixelIndex, pixelLength, SendFormat);
+            ColorEncoder.Pack(colors, 0, Colors, startPixelIndex, pixelLength, SendFormat);
         }
-        protected override Color[] UnpackColors(ushort[] colors)
+        protected override Color[] UnpackReceiveColors()
         {
-            return ColorEncoder.Unpack(colors, SendFormat);
+            return ColorEncoder.Unpack(ReceiveColors, SendFormat);
+        }
+        protected override Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length)
+        {
+            var partColors = new ushort[length];
+            System.Array.Copy(ReceiveColors, startReceiveIndex, partColors, 0, length);
+            return ColorEncoder.Unpack(partColors, SendFormat);
         }
     }
 }
