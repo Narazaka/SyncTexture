@@ -14,6 +14,8 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 case SendFormat16.RGB565:
                     return ColorEncoderRGB565.PackUnitLength;
+                case SendFormat16.RGBA4444:
+                    return ColorEncoderRGBA4444.PackUnitLength;
                 case SendFormat16.R16G16B16A16:
                     return ColorEncoderR16G16B16A16.PackUnitLength;
                 case SendFormat16.R16:
@@ -29,6 +31,8 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 case SendFormat16.RGB565:
                     return ColorEncoderRGB565.Pack(colors);
+                case SendFormat16.RGBA4444:
+                    return ColorEncoderRGBA4444.Pack(colors);
                 case SendFormat16.R16G16B16A16:
                     return ColorEncoderR16G16B16A16.Pack(colors);
                 case SendFormat16.R16:
@@ -45,6 +49,9 @@ namespace net.narazaka.vrchat.sync_texture
                 case SendFormat16.RGB565:
                     ColorEncoderRGB565.Pack(colors, startColorIndex, data, startPixelIndex, pixelLength);
                     break;
+                case SendFormat16.RGBA4444:
+                    ColorEncoderRGBA4444.Pack(colors, startColorIndex, data, startPixelIndex, pixelLength);
+                    break;
                 case SendFormat16.R16G16B16A16:
                     ColorEncoderR16G16B16A16.Pack(colors, startColorIndex, data, startPixelIndex, pixelLength);
                     break;
@@ -60,6 +67,8 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 case SendFormat16.RGB565:
                     return ColorEncoderRGB565.Unpack(data);
+                case SendFormat16.RGBA4444:
+                    return ColorEncoderRGBA4444.Unpack(data);
                 case SendFormat16.R16G16B16A16:
                     return ColorEncoderR16G16B16A16.Unpack(data);
                 case SendFormat16.R16:
