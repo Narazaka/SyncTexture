@@ -48,10 +48,11 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder
 
         static Color DecodeRGB565(ushort color)
         {
-            return new Color(
-                1f * (color >> 11) / 0x1F,
-                1f * ((color >> 5) & 0x3F) / 0x3F,
-                1f * (color & 0x1F) / 0x1F
+            return new Color32(
+                (byte)((color >> 11) << 3),
+                (byte)(((color >> 5) & 0x3F) << 2),
+                (byte)((color & 0x1F) << 3),
+                0xFF
             );
         }
     }
