@@ -20,12 +20,7 @@ namespace net.narazaka.vrchat.sync_texture
         protected override int PackUnitLength => ColorEncoder.PackUnitLength;
         protected override void StoreColors(Color32[] colors, int startPixelIndex) => Array.Copy(colors, 0, Colors, startPixelIndex, colors.Length);
         protected override Color[] UnpackReceiveColors() =>  ColorEncoder.Unpack(ReceiveColors);
-        protected override Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength)
-        {
-            var colors = new Color[pixelLength];
-            ColorEncoder.Unpack(ReceiveColors, startReceivePixelIndex, colors, 0, pixelLength);
-            return colors;
-        }
+        protected override Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength) => ColorEncoder.Unpack(ReceiveColors, startReceivePixelIndex, new Color[pixelLength], 0, pixelLength);
 
         protected override void InitializeSyncColors(int size) => SyncColors = new ushort[size];
 

@@ -12,6 +12,6 @@ namespace net.narazaka.vrchat.sync_texture
 
         public abstract Color[] Unpack(T[] data);
 
-        public abstract void Unpack(T[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength);
+        public abstract Color[] Unpack(T[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength);
     }
 }

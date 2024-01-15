@@ -32,12 +32,13 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder
             return colors;
         }
 
-        public override void Unpack(ushort[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength)
+        public override Color[] Unpack(ushort[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength)
         {
             for (int i = 0; i < pixelLength; i++)
             {
                 colors[startColorIndex + i] = DecodeRGBA4444(data[startPixelIndex + i]);
             }
+            return colors;
         }
 
         static ushort EncodeRGBA4444(Color32 color)
