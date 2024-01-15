@@ -18,48 +18,27 @@ namespace net.narazaka.vrchat.sync_texture
         ushort[] ReceiveColors = new ushort[0];
 
         protected override int PackUnitLength => ColorEncoder.PackUnitLength;
-        protected override void StoreColors(Color32[] colors, int startPixelIndex)
+        protected override void StoreColors(Color32[] colors, int startPixelIndex) => Array.Copy(colors, 0, Colors, startPixelIndex, colors.Length);
+        protected override Color[] UnpackReceiveColors() =>  ColorEncoder.Unpack(ReceiveColors);
+        protected override Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength)
         {
-            Array.Copy(colors, 0, Colors, startPixelIndex, colors.Length);
-        }
-        protected override Color[] UnpackReceiveColors()
-        {
-            return ColorEncoder.Unpack(ReceiveColors);
-        }
-        protected override Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length)
-        {
-            var partColors = new ushort[length];
-            Array.Copy(ReceiveColors, startReceiveIndex, partColors, 0, length);
-            return ColorEncoder.Unpack(partColors);
+            var colors = new Color[pixelLength];
+            ColorEncoder.Unpack(ReceiveColors, startReceivePixelIndex, colors, 0, pixelLength);
+            return colors;
         }
 
-        protected override void InitializeSyncColors(int size)
-        {
-            SyncColors = new ushort[size];
-        }
+        protected override void InitializeSyncColors(int size) => SyncColors = new ushort[size];
 
-        protected override void InitializeSourceColors(int size)
-        {
-            Colors = new Color32[PackUnitLength * size];
-        }
+        protected override void InitializeSourceColors(int size) => Colors = new Color32[PackUnitLength * size];
 
-        protected override void InitializeReceiveColors(int size)
-        {
-            ReceiveColors = new ushort[PackUnitLength * size];
-        }
+        protected override void InitializeReceiveColors(int size) => ReceiveColors = new ushort[PackUnitLength * size];
 
         protected override int SourceColorsLength => Colors.Length;
         protected override bool ReceiveColorsIsEmpty => ReceiveColors == null || ReceiveColors.Length == 0;
         protected override bool ReceiveColorsIsValid(int size) => ReceiveColors != null && ReceiveColors.Length == PackUnitLength * size;
 
-        protected override void CopySourceColorsToSyncColors(int startSourceIndex, int length)
-        {
-            ColorEncoder.Pack(Colors, startSourceIndex, SyncColors, 0, length);
-        }
+        protected override void CopySourceColorsToSyncColors(int startSourceIndex, int length) => ColorEncoder.Pack(Colors, startSourceIndex, SyncColors, 0, length);
 
-        protected override void CopySyncColorsToReceiveColors(int startReceiveIndex)
-        {
-            Array.Copy(SyncColors, 0, ReceiveColors, startReceiveIndex, SyncColors.Length);
-        }
+        protected override void CopySyncColorsToReceiveColors(int startReceiveIndex) => Array.Copy(SyncColors, 0, ReceiveColors, startReceiveIndex, SyncColors.Length);
     }
 }

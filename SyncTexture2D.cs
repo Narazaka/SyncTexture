@@ -26,7 +26,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         abstract protected void StoreColors(Color32[] colors, int startPixelIndex);
         abstract protected Color[] UnpackReceiveColors();
-        abstract protected Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length);
+        abstract protected Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength);
 
 
         protected override void StartReadSource()
