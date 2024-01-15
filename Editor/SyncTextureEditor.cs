@@ -105,6 +105,10 @@ namespace net.narazaka.vrchat.sync_texture.editor
             {
                 EditorGUILayout.HelpBox("RenderTexture source must use AsyncGPUReadback", MessageType.Error);
             }
+            if (useAsyncGPUReadback)
+            {
+                EditorGUILayout.HelpBox("AsyncGPUReadback can use raw texture formats such as RGBA32bit so Source texture format should not be a compressed format such as DXT1", MessageType.Info);
+            }
             if (!useAsyncGPUReadback)
             {
                 EditorGUILayout.PropertyField(GetPixelsBulkCount);
