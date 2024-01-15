@@ -3,6 +3,8 @@ using UdonSharp;
 using UnityEngine;
 using System;
 using VRC.Udon;
+using VRC.SDK3.Rendering;
+using VRC.Udon.Common.Interfaces;
 
 
 namespace net.narazaka.vrchat.sync_texture
@@ -10,7 +12,7 @@ namespace net.narazaka.vrchat.sync_texture
     public abstract class SyncTexture2D : SyncTexture
     {
         [SerializeField]
-        public Texture2D Source;
+        public Texture Source;
         [SerializeField]
         public Texture2D Target;
         [SerializeField]
@@ -22,20 +24,46 @@ namespace net.narazaka.vrchat.sync_texture
         protected override int Width => Source.width;
         protected override int Height => Source.height;
 
-        abstract protected void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength);
+        abstract protected void StoreColors(Color32[] colors, int startPixelIndex);
         abstract protected Color[] UnpackReceiveColors();
         abstract protected Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length);
 
 
         protected override void StartReadSource()
         {
-            ReadIndex = -1;
-            ReadPixels();
+            if (GetPixelsBulkCount == 0)
+            {
+                ReadIndex = 0;
+                VRCAsyncGPUReadback.Request(Source, 0, TextureFormat.RGBA32, (IUdonEventReceiver)this);
+            }
+            else
+            {
+                ReadIndex = -1;
+                ReadPixels();
+            }
         }
 
         protected override void CancelReadSource()
         {
             ReadIndex = -2;
+        }
+
+        public override void OnAsyncGpuReadbackComplete(VRCAsyncGPUReadbackRequest request)
+        {
+            if (ReadIndex != 0)
+            {
+                return;
+            }
+            ReadIndex = -1;
+            var colors = new Color32[Width * Height];
+            if (request.hasError || !request.TryGetData(colors))
+            {
+                Debug.LogError($"[SyncTexture] OnAsyncGpuReadbackComplete error");
+                CancelSync();
+                return;
+            }
+            StoreColors(colors, 0);
+            StartSyncNext();
         }
 
 
@@ -55,8 +83,13 @@ namespace net.narazaka.vrchat.sync_texture
                 return;
             }
             var height = Mathf.Min(GetPixelsBulkCount, Source.height - startHeight);
-            var colors = Source.GetPixels(0, startHeight, Source.width, height);
-            PackColors(colors, 0, startHeight * Source.width, colors.Length);
+            var colors = ((Texture2D)Source).GetPixels(0, startHeight, Source.width, height);
+            var colors32 = new Color32[colors.Length];
+            for (int i = 0; i < colors.Length; i++)
+            {
+                colors32[i] = colors[i];
+            }
+            StoreColors(colors32, startHeight * Source.width);
             SendCustomEventDelayedFrames(nameof(ReadPixels), 1);
         }
 

@@ -7,9 +7,8 @@ namespace net.narazaka.vrchat.sync_texture
     {
         public abstract int PackUnitLength { get; }
 
-        public abstract T[] Pack(Color[] colors);
-
-        public abstract void Pack(Color[] colors, int startColorIndex, T[] data, int startPixelIndex, int pixelLength);
+        public abstract T[] Pack(Color32[] colors);
+        public abstract void Pack(Color32[] colors, int startColorIndex, T[] data, int startPixelIndex, int pixelLength);
 
         public abstract Color[] Unpack(T[] data);
 

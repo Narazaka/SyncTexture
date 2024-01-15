@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace net.narazaka.vrchat.sync_texture.editor
 {
-    [CustomEditor(typeof(SyncTexture))]
+    [CustomEditor(typeof(SyncTexture2D), true)]
     [CanEditMultipleObjects]
     public class SyncTextureEditor : Editor
     {
@@ -77,7 +77,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             }
             if (Source.objectReferenceValue != null && Target.objectReferenceValue != null)
             {
-                var source = (Texture2D)Source.objectReferenceValue;
+                var source = (Texture)Source.objectReferenceValue;
                 var target = (Texture2D)Target.objectReferenceValue;
                 if (source.width != target.width || source.height != target.height)
                 {
@@ -137,7 +137,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         void CheckTexture2DReadable(SerializedProperty property)
         {
             if (property.objectReferenceValue == null) return;
-            var texture = (Texture2D)property.objectReferenceValue;
+            var texture = (Texture)property.objectReferenceValue;
             if (!texture.isReadable)
             {
                 EditorGUILayout.HelpBox($"{property.displayName} must be Read/Write Enabled", MessageType.Error);

@@ -14,13 +14,13 @@ namespace net.narazaka.vrchat.sync_texture
         public ColorEncoder16 ColorEncoder;
         [UdonSynced]
         ushort[] SyncColors;
-        ushort[] Colors = new ushort[0];
+        Color32[] Colors = new Color32[0];
         ushort[] ReceiveColors = new ushort[0];
 
         protected override int PackUnitLength => ColorEncoder.PackUnitLength;
-        protected override void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength)
+        protected override void StoreColors(Color32[] colors, int startPixelIndex)
         {
-            ColorEncoder.Pack(colors, 0, Colors, startPixelIndex, pixelLength);
+            Array.Copy(colors, 0, Colors, startPixelIndex, colors.Length);
         }
         protected override Color[] UnpackReceiveColors()
         {
@@ -40,7 +40,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         protected override void InitializeSourceColors(int size)
         {
-            Colors = new ushort[PackUnitLength * size];
+            Colors = new Color32[PackUnitLength * size];
         }
 
         protected override void InitializeReceiveColors(int size)
@@ -54,7 +54,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         protected override void CopySourceColorsToSyncColors(int startSourceIndex, int length)
         {
-            Array.Copy(Colors, startSourceIndex, SyncColors, 0, length);
+            ColorEncoder.Pack(Colors, startSourceIndex, SyncColors, 0, length);
         }
 
         protected override void CopySyncColorsToReceiveColors(int startReceiveIndex)

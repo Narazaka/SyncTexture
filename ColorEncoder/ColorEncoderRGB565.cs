@@ -8,7 +8,7 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder
     {
         public override int PackUnitLength { get => 1; }
 
-        public override ushort[] Pack(Color[] colors)
+        public override ushort[] Pack(Color32[] colors)
         {
             var len = colors.Length;
             var data = new ushort[len];
@@ -16,7 +16,7 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder
             return data;
         }
 
-        public override void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
+        public override void Pack(Color32[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
         {
             for (int i = 0; i < pixelLength; i++)
             {
@@ -40,9 +40,9 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder
             }
         }
 
-        static ushort EncodeRGB565(Color color)
+        static ushort EncodeRGB565(Color32 color)
         {
-            return (ushort)((ushort)(color.r * 31.0) << 11 | (ushort)(color.g * 63.0) << 5 | (ushort)(color.b * 31.0));
+            return (ushort)((color.r >> 3) << 11 | (color.g >> 2) << 5 | (color.b >> 3));
         }
 
         static Color DecodeRGB565(ushort color)
