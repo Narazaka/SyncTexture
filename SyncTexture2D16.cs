@@ -24,13 +24,13 @@ namespace net.narazaka.vrchat.sync_texture
 
         protected override void InitializeSyncColors(int size) => SyncColors = new ushort[size];
 
-        protected override void InitializeSourceColors(int size) => Colors = new Color32[PackUnitLength * size];
+        protected override void InitializeSourceColors() => Colors = new Color32[Width * Height];
 
-        protected override void InitializeReceiveColors(int size) => ReceiveColors = new ushort[PackUnitLength * size];
+        protected override void InitializeReceiveColors() => ReceiveColors = new ushort[PackUnitLength * Width * Height];
 
         protected override int SourceColorsLength => Colors.Length;
         protected override bool ReceiveColorsIsEmpty => ReceiveColors == null || ReceiveColors.Length == 0;
-        protected override bool ReceiveColorsIsValid(int size) => ReceiveColors != null && ReceiveColors.Length == PackUnitLength * size;
+        protected override bool ReceiveColorsIsValid => ReceiveColors != null && ReceiveColors.Length == PackUnitLength * Width * Height;
 
         protected override void CopySourceColorsToSyncColors(int startSourceIndex, int length) => ColorEncoder.Pack(Colors, startSourceIndex, SyncColors, 0, length);
 
