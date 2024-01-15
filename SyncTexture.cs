@@ -8,8 +8,7 @@ using VRC.Udon.Common;
 
 namespace net.narazaka.vrchat.sync_texture
 {
-    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
-    public class SyncTexture : SyncTextureBase
+    public abstract class SyncTexture : SyncTextureBase
     {
         [SerializeField]
         public UdonBehaviour PrepareCallbackListener;
@@ -17,8 +16,6 @@ namespace net.narazaka.vrchat.sync_texture
         public Texture2D Source;
         [SerializeField]
         public Texture2D Target;
-        [SerializeField]
-        public SendFormat SendFormat;
         [SerializeField]
         public int GetPixelsBulkCount = 8;
         [SerializeField]
@@ -31,13 +28,9 @@ namespace net.narazaka.vrchat.sync_texture
         bool PrepareCallbackAsync;
 
         [UdonSynced]
-        ushort[] SyncColors;
-        [UdonSynced]
         short SyncIndex = -1;
 
         int ReadIndex = -1;
-        ushort[] Colors = new ushort[0];
-        ushort[] ReceiveColors = new ushort[0];
 
         bool Prepareing;
 
@@ -50,11 +43,24 @@ namespace net.narazaka.vrchat.sync_texture
             get
             {
                 if (SyncIndex < 0) return 0f;
-                var packUnitLength = ColorEncoder.PackUnitLength(SendFormat);
-                var dataLen = Target.width * Target.height * packUnitLength;
+                var dataLen = Target.width * Target.height * PackUnitLength;
                 return (float)SyncIndex * BulkCount / dataLen;
             }
         }
+
+        abstract protected int PackUnitLength { get; }
+        abstract protected void PackColors(Color[] colors, int startColorIndex, int startPixelIndex, int pixelLength);
+        abstract protected Color[] UnpackReceiveColors();
+        abstract protected Color[] UnpackReceiveColorsPartial(int startReceiveIndex, int length);
+
+        abstract protected void InitializeSyncColors(int size);
+        abstract protected void InitializeSourceColors(int size);
+        abstract protected void InitializeReceiveColors(int size);
+        abstract protected int SourceColorsLength { get; }
+        abstract protected bool ReceiveColorsIsEmpty { get; }
+        abstract protected bool ReceiveColorsIsValid(int size);
+        abstract protected void CopySourceColorsToSyncColors(int startSourceIndex, int length);
+        abstract protected void CopySyncColorsToReceiveColors(int startReceiveIndex);
 
         /// <summary>
         /// Take ownership and send texture data to other players.
@@ -96,7 +102,7 @@ namespace net.narazaka.vrchat.sync_texture
                 PrepareCallback(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
             }
             Prepareing = false;
-            SyncColors = new ushort[0];
+            InitializeSyncColors(0);
             QueueSerialization();
             Debug.Log($"[SyncTexture] Send Canceled");
             Callback(nameof(SyncTextureCallbackListener.OnSyncCanceled));
@@ -120,7 +126,7 @@ namespace net.narazaka.vrchat.sync_texture
         public void PrepareSync()
         {
             var size = Source.width * Source.height;
-            Colors = new ushort[ColorEncoder.PackUnitLength(SendFormat) * size];
+            InitializeSourceColors(size);
             ReadIndex = -1;
             ReadPixels();
         }
@@ -144,7 +150,7 @@ namespace net.narazaka.vrchat.sync_texture
             }
             var height = Mathf.Min(GetPixelsBulkCount, Source.height - startHeight);
             var colors = Source.GetPixels(0, startHeight, Source.width, height);
-            ColorEncoder.Pack(colors, 0, Colors, startHeight * Source.width, colors.Length, SendFormat);
+            PackColors(colors, 0, startHeight * Source.width, colors.Length);
             SendCustomEventDelayedFrames(nameof(ReadPixels), 1);
         }
 
@@ -155,19 +161,19 @@ namespace net.narazaka.vrchat.sync_texture
                 return;
             }
             ++SyncIndex;
-            var len = Colors.Length;
+            var len = SourceColorsLength;
             var startIndex = SyncIndex * BulkCount;
             var count = Mathf.Min(BulkCount, len - startIndex);
             if (count <= 0)
             {
                 SyncIndex = -1;
-                SyncColors = new ushort[0];
+                InitializeSyncColors(0);
                 QueueSerialization();
                 return;
             }
             Debug.Log($"[SyncTexture] SyncNext from height={startIndex}/{len}");
-            SyncColors = new ushort[count];
-            Array.Copy(Colors, startIndex, SyncColors, 0, count);
+            InitializeSyncColors(count);
+            CopySourceColorsToSyncColors(startIndex, count);
             QueueSerialization();
         }
 
@@ -194,10 +200,10 @@ namespace net.narazaka.vrchat.sync_texture
         {
             if (SyncIndex < 0)
             {
-                if (ReceiveColors == null || ReceiveColors.Length == 0) return;
+                if (ReceiveColorsIsEmpty) return;
                 if (!ShowProgress)
                 {
-                    Target.SetPixels(ColorEncoder.Unpack(ReceiveColors, SendFormat));
+                    Target.SetPixels(UnpackReceiveColors());
                     Target.Apply();
                 }
                 if (SyncIndex == -2)
@@ -211,24 +217,23 @@ namespace net.narazaka.vrchat.sync_texture
                 return;
             }
 
-            var packUnitLength = ColorEncoder.PackUnitLength(SendFormat);
-            var receiveDataLen = Target.width * Target.height * packUnitLength;
-            if (SyncIndex == 0 || ReceiveColors == null || ReceiveColors.Length != receiveDataLen)
+            var packUnitLength = PackUnitLength;
+            var receiveColorsLength = Target.width * Target.height;
+            if (SyncIndex == 0 || !ReceiveColorsIsValid(receiveColorsLength))
             {
-                ReceiveColors = new ushort[receiveDataLen];
+                InitializeReceiveColors(receiveColorsLength);
                 Callback(nameof(SyncTextureCallbackListener.OnReceiveStart));
             }
-            Array.Copy(SyncColors, 0, ReceiveColors, SyncIndex * BulkCount, SyncColors.Length);
+            CopySyncColorsToReceiveColors(SyncIndex * BulkCount);
             if (ShowProgress)
             {
                 var minHeight = SyncIndex * BulkCount / Target.width / packUnitLength;
                 var maxHeight = Mathf.Min((SyncIndex + 1) * BulkCount / Target.width / packUnitLength, Target.height);
                 var height = maxHeight - minHeight;
-                var partColors = new ushort[height * Target.width * packUnitLength];
-                if (partColors.Length == 0) return;
-                Debug.Log($"[SyncTexture] Deserialized {minHeight}->{maxHeight}({height}) datalen={partColors.Length}");
-                Array.Copy(ReceiveColors, minHeight * Target.width * packUnitLength, partColors, 0, partColors.Length);
-                var colors = ColorEncoder.Unpack(partColors, SendFormat);
+                var partColorsLength = height * Target.width * packUnitLength;
+                if (partColorsLength == 0) return;
+                Debug.Log($"[SyncTexture] Deserialized {minHeight}->{maxHeight}({height}) datalen={partColorsLength}");
+                var colors = UnpackReceiveColorsPartial(minHeight * Target.width * packUnitLength, partColorsLength);
                 Target.SetPixels(0, minHeight, Target.width, height, colors);
                 Target.Apply();
             }
