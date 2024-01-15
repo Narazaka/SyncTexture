@@ -38,7 +38,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         };
         SerializedProperty Source;
         SerializedProperty Target;
-        SerializedProperty SendFormat;
+        SerializedProperty ColorEncoder;
         SerializedProperty GetPixelsBulkCount;
         SerializedProperty BulkCount;
         SerializedProperty SyncInterval;
@@ -53,7 +53,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         {
             Source = serializedObject.FindProperty("Source");
             Target = serializedObject.FindProperty("Target");
-            SendFormat = serializedObject.FindProperty("SendFormat");
+            ColorEncoder = serializedObject.FindProperty("ColorEncoder");
             GetPixelsBulkCount = serializedObject.FindProperty("GetPixelsBulkCount");
             BulkCount = serializedObject.FindProperty("BulkCount");
             SyncInterval = serializedObject.FindProperty("SyncInterval");
@@ -87,7 +87,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             CheckTexture2DReadable(Source);
             CheckTexture2DReadable(Target);
             CheckTexture2DWritable(Target);
-            EditorGUILayout.PropertyField(SendFormat);
+            EditorGUILayout.PropertyField(ColorEncoder);
             EditorGUILayout.PropertyField(GetPixelsBulkCount);
             EditorGUILayout.HelpBox("GetPixelsBulkCount affects sender performance", MessageType.Info);
             EditorGUILayout.PropertyField(BulkCount);

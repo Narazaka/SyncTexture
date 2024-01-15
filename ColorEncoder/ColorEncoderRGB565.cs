@@ -1,15 +1,14 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using UdonSharp;
 using UnityEngine;
 
-namespace net.narazaka.vrchat.sync_texture.color_encoder16
+namespace net.narazaka.vrchat.sync_texture.color_encoder
 {
-    public class ColorEncoderRGB565
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    public class ColorEncoderRGB565 : ColorEncoder16
     {
-        public const int PackUnitLength = 1;
+        public override int PackUnitLength { get => 1; }
 
-        public static ushort[] Pack(Color[] colors)
+        public override ushort[] Pack(Color[] colors)
         {
             var len = colors.Length;
             var data = new ushort[len];
@@ -17,7 +16,7 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder16
             return data;
         }
 
-        public static void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
+        public override void Pack(Color[] colors, int startColorIndex, ushort[] data, int startPixelIndex, int pixelLength)
         {
             for (int i = 0; i < pixelLength; i++)
             {
@@ -25,7 +24,7 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder16
             }
         }
 
-        public static Color[] Unpack(ushort[] data)
+        public override Color[] Unpack(ushort[] data)
         {
             var len = data.Length;
             var colors = new Color[len];
@@ -33,7 +32,7 @@ namespace net.narazaka.vrchat.sync_texture.color_encoder16
             return colors;
         }
 
-        public static void Unpack(ushort[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength)
+        public override void Unpack(ushort[] data, int startPixelIndex, Color[] colors, int startColorIndex, int pixelLength)
         {
             for (int i = 0; i < pixelLength; i++)
             {
