@@ -88,9 +88,36 @@ namespace net.narazaka.vrchat.sync_texture.editor
             CheckTexture2DReadable(Target);
             CheckTexture2DWritable(Target);
             EditorGUILayout.PropertyField(ColorEncoder);
+            if (ColorEncoder.objectReferenceValue == null)
+            {
+                EditorGUILayout.HelpBox("ColorEncoder must be set", MessageType.Error);
+            }
             EditorGUILayout.PropertyField(GetPixelsBulkCount);
             EditorGUILayout.HelpBox("GetPixelsBulkCount affects sender performance", MessageType.Info);
             EditorGUILayout.PropertyField(BulkCount);
+            if (ColorEncoder.objectReferenceValue != null)
+            {
+                var colorEncoder = ColorEncoder.objectReferenceValue;
+                int packUnitLength = 1;
+                switch (colorEncoder)
+                {
+                    case ColorEncoder8 c:
+                        packUnitLength = c.PackUnitLength;
+                        break;
+                    case ColorEncoder16 c:
+                        packUnitLength = c.PackUnitLength;
+                        break;
+                }
+
+                if (BulkCount.intValue % packUnitLength != 0)
+                {
+                    EditorGUILayout.HelpBox($"BulkCount must be multiple of {packUnitLength}", MessageType.Error);
+                }
+            }
+            if (BulkCount.intValue < 1)
+            {
+                EditorGUILayout.HelpBox("BulkCount must be positive", MessageType.Error);
+            }
             EditorGUILayout.PropertyField(SyncInterval);
             if (SyncInterval.floatValue < 0f)
             {
