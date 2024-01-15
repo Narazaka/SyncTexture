@@ -92,8 +92,28 @@ namespace net.narazaka.vrchat.sync_texture.editor
             {
                 EditorGUILayout.HelpBox("ColorEncoder must be set", MessageType.Error);
             }
-            EditorGUILayout.PropertyField(GetPixelsBulkCount);
-            EditorGUILayout.HelpBox("GetPixelsBulkCount affects sender performance", MessageType.Info);
+            bool useAsyncGPUReadback;
+            using (var change = new EditorGUI.ChangeCheckScope())
+            {
+                useAsyncGPUReadback = EditorGUILayout.Toggle("Use AsyncGPUReadback", GetPixelsBulkCount.intValue == 0);
+                if (change.changed)
+                {
+                    GetPixelsBulkCount.intValue = useAsyncGPUReadback ? 0 : 8;
+                }
+            }
+            if (!useAsyncGPUReadback && Source.objectReferenceValue != null && Source.objectReferenceValue is RenderTexture)
+            {
+                EditorGUILayout.HelpBox("RenderTexture source must use AsyncGPUReadback", MessageType.Error);
+            }
+            if (useAsyncGPUReadback && Source.objectReferenceValue != null && !SystemInfo.IsFormatSupported((Source.objectReferenceValue as Texture).graphicsFormat, UnityEngine.Experimental.Rendering.FormatUsage.ReadPixels))
+            {
+                EditorGUILayout.HelpBox("Source texture format cannot use AsyncGPUReadback", MessageType.Error);
+            }
+            if (!useAsyncGPUReadback)
+            {
+                EditorGUILayout.PropertyField(GetPixelsBulkCount);
+                EditorGUILayout.HelpBox("GetPixelsBulkCount affects sender performance", MessageType.Info);
+            }
             EditorGUILayout.PropertyField(BulkCount);
             if (ColorEncoder.objectReferenceValue != null)
             {
