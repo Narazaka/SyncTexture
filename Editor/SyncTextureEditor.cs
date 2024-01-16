@@ -148,19 +148,37 @@ namespace net.narazaka.vrchat.sync_texture.editor
             {
                 var colorEncoder = ColorEncoder.objectReferenceValue;
                 int packUnitLength = 1;
+                int bytes = 0;
                 switch (colorEncoder)
                 {
                     case ColorEncoder8 c:
                         packUnitLength = c.PackUnitLength;
+                        bytes = 1;
                         break;
                     case ColorEncoder16 c:
                         packUnitLength = c.PackUnitLength;
+                        bytes = 2;
                         break;
                 }
 
                 if (BulkCount.intValue % packUnitLength != 0)
                 {
                     EditorGUILayout.HelpBox($"BulkCount must be multiple of {packUnitLength}", MessageType.Error);
+                }
+                var SyncBytesPerSecond = BulkCount.intValue * bytes / SyncInterval.floatValue;
+                var specRate = SyncBytesPerSecond / (11f * 1024);
+                EditorGUILayout.HelpBox($"sync {SyncBytesPerSecond} bytes/sec : {specRate * 100} % of network spec", MessageType.Info);
+                if (Source.objectReferenceValue != null)
+                {
+                    var sourceTexture = (Texture)Source.objectReferenceValue;
+                    var pixelCount = sourceTexture.width * sourceTexture.height;
+                    var bulkPixelCount = BulkCount.intValue / packUnitLength;
+                    var seconds = SyncInterval.floatValue * pixelCount / bulkPixelCount;
+                    EditorGUILayout.HelpBox($"total sync time will be {seconds} seconds", MessageType.Info);
+                }
+                if (specRate > 0.7f)
+                {
+                    EditorGUILayout.HelpBox("sync size is too big! reduce BulkCount or increase SyncInterval", MessageType.Warning);
                 }
             }
             if (BulkCount.intValue < 1)
@@ -171,10 +189,6 @@ namespace net.narazaka.vrchat.sync_texture.editor
             if (SyncInterval.floatValue < 0f)
             {
                 EditorGUILayout.HelpBox("SyncInterval must be positive", MessageType.Error);
-            }
-            if (SyncInterval.floatValue * 5000f < BulkCount.intValue)
-            {
-                EditorGUILayout.HelpBox("SyncInterval is short", MessageType.Warning);
             }
             EditorGUILayout.PropertyField(ShowProgress);
             EditorGUILayout.PropertyField(CallbackListener);
