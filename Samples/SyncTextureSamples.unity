@@ -338,7 +338,7 @@ MonoBehaviour:
   SyncEnabled: 1
   CallbackListener: {fileID: 747020614}
   PrepareCallbackListener: {fileID: 0}
-  BulkCount: 5000
+  BulkCount: 3000
   SyncInterval: 1
   ShowProgress: 1
   PrepareCallbackAsync: 0
@@ -1708,7 +1708,7 @@ MonoBehaviour:
   SyncEnabled: 1
   CallbackListener: {fileID: 747020614}
   PrepareCallbackListener: {fileID: 0}
-  BulkCount: 5000
+  BulkCount: 6000
   SyncInterval: 1
   ShowProgress: 1
   PrepareCallbackAsync: 0
