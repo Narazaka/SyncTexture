@@ -46,8 +46,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
         SerializedProperty BulkCount;
         SerializedProperty SyncInterval;
         SerializedProperty ShowProgress;
-        SerializedProperty CallbackListener;
-        SerializedProperty PrepareCallbackListener;
+        SerializedProperty CallbackListeners;
         SerializedProperty PrepareCallbackAsync;
         SerializedProperty SyncEnabled;
         bool ShowColorEncoders;
@@ -62,8 +61,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             BulkCount = serializedObject.FindProperty("BulkCount");
             SyncInterval = serializedObject.FindProperty("SyncInterval");
             ShowProgress = serializedObject.FindProperty("ShowProgress");
-            CallbackListener = serializedObject.FindProperty("CallbackListener");
-            PrepareCallbackListener = serializedObject.FindProperty("PrepareCallbackListener");
+            CallbackListeners = serializedObject.FindProperty("CallbackListeners");
             PrepareCallbackAsync = serializedObject.FindProperty("PrepareCallbackAsync");
             SyncEnabled = serializedObject.FindProperty("SyncEnabled");
         }
@@ -191,8 +189,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
                 EditorGUILayout.HelpBox("SyncInterval must be positive", MessageType.Error);
             }
             EditorGUILayout.PropertyField(ShowProgress);
-            EditorGUILayout.PropertyField(CallbackListener);
-            EditorGUILayout.PropertyField(PrepareCallbackListener);
+            EditorGUILayout.PropertyField(CallbackListeners);
             EditorGUILayout.PropertyField(PrepareCallbackAsync);
             ShowCalllbackHelp = EditorGUILayout.Foldout(ShowCalllbackHelp, "Callback Help");
             if (ShowCalllbackHelp)

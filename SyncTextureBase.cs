@@ -17,7 +17,7 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public bool SyncEnabled = true;
         [SerializeField]
-        public UdonBehaviour CallbackListener;
+        public UdonBehaviour[] CallbackListeners;
 
         /// <summary>
         /// Take ownership and send texture data to other players.

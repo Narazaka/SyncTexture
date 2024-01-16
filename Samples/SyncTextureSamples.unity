@@ -336,8 +336,8 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 311265200}
   SyncEnabled: 1
-  CallbackListener: {fileID: 747020614}
-  PrepareCallbackListener: {fileID: 0}
+  CallbackListeners:
+  - {fileID: 747020614}
   BulkCount: 3000
   SyncInterval: 1
   ShowProgress: 1
@@ -1706,8 +1706,8 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 2021254491}
   SyncEnabled: 1
-  CallbackListener: {fileID: 747020614}
-  PrepareCallbackListener: {fileID: 0}
+  CallbackListeners:
+  - {fileID: 747020614}
   BulkCount: 6000
   SyncInterval: 1
   ShowProgress: 1

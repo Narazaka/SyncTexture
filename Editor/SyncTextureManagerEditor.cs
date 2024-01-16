@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UdonSharp;
 using UdonSharpEditor;
 using UnityEditor;
@@ -33,10 +35,14 @@ namespace net.narazaka.vrchat.sync_texture.editor
                 EditorGUI.PropertyField(rect, element);
 
                 var syncTexture = element.objectReferenceValue as SyncTextureBase;
-                if (syncTexture != null && syncTexture.CallbackListener != TargetUdonBehaviour)
+                if (syncTexture != null && (syncTexture.CallbackListeners == null || !syncTexture.CallbackListeners.Contains(TargetUdonBehaviour)))
                 {
                     Undo.RecordObject(syncTexture, "set CallbackListener by SyncTextureManagerEditor");
-                    syncTexture.CallbackListener = TargetUdonBehaviour;
+                    var len = syncTexture.CallbackListeners == null ? 0 : syncTexture.CallbackListeners.Length;
+                    var newCallbackListeners = new UdonBehaviour[len + 1];
+                    if (len > 0) Array.Copy(syncTexture.CallbackListeners, newCallbackListeners, len);
+                    newCallbackListeners[len] = TargetUdonBehaviour;
+                    syncTexture.CallbackListeners = newCallbackListeners;
                 }
             };
         }

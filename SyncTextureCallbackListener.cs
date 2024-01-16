@@ -9,6 +9,8 @@ namespace net.narazaka.vrchat.sync_texture
     public abstract class SyncTextureCallbackListener : UdonSharpBehaviour
     {
         public abstract void OnPreSync();
+        public abstract void OnPrepare();
+        public abstract void OnPrepareCancel();
         public abstract void OnSyncStart();
         public abstract void OnSync();
         public abstract void OnSyncComplete();

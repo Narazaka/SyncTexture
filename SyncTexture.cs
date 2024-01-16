@@ -11,8 +11,6 @@ namespace net.narazaka.vrchat.sync_texture
     public abstract class SyncTexture : SyncTextureBase
     {
         [SerializeField]
-        public UdonBehaviour PrepareCallbackListener;
-        [SerializeField]
         public int BulkCount = 5000;
         [SerializeField]
         public float SyncInterval = 1f;
@@ -72,7 +70,7 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 Prepareing = true;
             }
-            PrepareCallback(nameof(SyncTexturePrepareCallbackListener.OnPrepare));
+            Callback(nameof(SyncTextureCallbackListener.OnPrepare));
             if (!Prepareing)
             {
                 PrepareSync();
@@ -96,7 +94,7 @@ namespace net.narazaka.vrchat.sync_texture
             SyncIndex = -2;
             if (Prepareing)
             {
-                PrepareCallback(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
+                Callback(nameof(SyncTextureCallbackListener.OnPrepareCancel));
             }
             Prepareing = false;
             InitializeSyncColors(0);
@@ -217,17 +215,12 @@ namespace net.narazaka.vrchat.sync_texture
 
         void Callback(string eventName)
         {
-            if (CallbackListener != null)
+            if (CallbackListeners != null)
             {
-                CallbackListener.SendCustomEvent(eventName);
-            }
-        }
-
-        void PrepareCallback(string eventName)
-        {
-            if (PrepareCallbackListener != null)
-            {
-                PrepareCallbackListener.SendCustomEvent(eventName);
+                foreach (var listener in CallbackListeners)
+                {
+                    listener.SendCustomEvent(eventName);
+                }
             }
         }
 
