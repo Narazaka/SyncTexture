@@ -198,6 +198,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
                 {
                     EditorGUILayout.HelpBox("CallbackListener callbacks:", MessageType.Info);
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnPreSync));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnPrepare));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnPrepareCancel));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSync));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncComplete));
@@ -206,10 +208,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceive));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveComplete));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
-                    EditorGUILayout.HelpBox("PrepareCallbackListener callbacks:", MessageType.Info);
-                    EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepare));
-                    EditorGUILayout.TextField(nameof(SyncTexturePrepareCallbackListener.OnPrepareCancel));
-                    EditorGUILayout.HelpBox("async PrepareCallbackListener should call this:", MessageType.Info);
+                    EditorGUILayout.HelpBox("async CallbackListener preparing should call this:", MessageType.Info);
                     EditorGUILayout.TextField(nameof(SyncTexture.OnPrepared));
                 }
             }
