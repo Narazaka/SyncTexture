@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using UdonSharp;
 using UdonSharpEditor;
@@ -35,15 +36,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
                 EditorGUI.PropertyField(rect, element);
 
                 var syncTexture = element.objectReferenceValue as SyncTextureBase;
-                if (syncTexture != null && (syncTexture.CallbackListeners == null || !syncTexture.CallbackListeners.Contains(TargetUdonBehaviour)))
-                {
-                    Undo.RecordObject(syncTexture, "set CallbackListener by SyncTextureManagerEditor");
-                    var len = syncTexture.CallbackListeners == null ? 0 : syncTexture.CallbackListeners.Length;
-                    var newCallbackListeners = new UdonBehaviour[len + 1];
-                    if (len > 0) Array.Copy(syncTexture.CallbackListeners, newCallbackListeners, len);
-                    newCallbackListeners[len] = TargetUdonBehaviour;
-                    syncTexture.CallbackListeners = newCallbackListeners;
-                }
+                SetSelfToSyncTexture(syncTexture);
             };
         }
 
@@ -55,7 +48,32 @@ namespace net.narazaka.vrchat.sync_texture.editor
 
             SyncTexturesList.DoLayoutList();
 
+            if (GUILayout.Button("Set All SyncTextures"))
+            {
+                var storedSyncTextures = (target as SyncTextureManager).SyncTextures.ToImmutableHashSet();
+                var syncTextures = UnityEngine.Object.FindObjectsByType<SyncTexture>(FindObjectsInactive.Include, FindObjectsSortMode.None).ToList();
+                foreach (var syncTexture in syncTextures)
+                {
+                    if (storedSyncTextures.Contains(syncTexture)) continue;
+                    SyncTextures.arraySize++;
+                    SyncTextures.GetArrayElementAtIndex(SyncTextures.arraySize - 1).objectReferenceValue = syncTexture;
+                    SetSelfToSyncTexture(syncTexture);
+                }
+            }
+
             serializedObject.ApplyModifiedProperties();
+        }
+
+        void SetSelfToSyncTexture(SyncTextureBase syncTexture)
+        {
+            if (syncTexture == null) return;
+            if (syncTexture.CallbackListeners != null && syncTexture.CallbackListeners.Contains(TargetUdonBehaviour)) return;
+            Undo.RecordObject(syncTexture, "set CallbackListener by SyncTextureManagerEditor");
+            var len = syncTexture.CallbackListeners == null ? 0 : syncTexture.CallbackListeners.Length;
+            var newCallbackListeners = new UdonBehaviour[len + 1];
+            if (len > 0) Array.Copy(syncTexture.CallbackListeners, newCallbackListeners, len);
+            newCallbackListeners[len] = TargetUdonBehaviour;
+            syncTexture.CallbackListeners = newCallbackListeners;
         }
     }
 }
