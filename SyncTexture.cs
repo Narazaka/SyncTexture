@@ -17,7 +17,7 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         public bool ShowProgress = true;
         [SerializeField]
-        bool PrepareCallbackAsync;
+        public bool PrepareCallbackAsync;
 
         [UdonSynced]
         short SyncIndex = -1;

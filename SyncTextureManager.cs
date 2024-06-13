@@ -12,7 +12,7 @@ namespace net.narazaka.vrchat.sync_texture
     public class SyncTextureManager : UdonSharpBehaviour
     {
         [SerializeField]
-        SyncTextureBase[] SyncTextures;
+        public SyncTextureBase[] SyncTextures;
         [UdonSynced]
         sbyte SendingIndex = -1;
 
