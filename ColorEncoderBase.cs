@@ -3,6 +3,10 @@ using UnityEngine;
 
 namespace net.narazaka.vrchat.sync_texture
 {
+    /// <summary>
+    /// Pack / unpack color data to / from suitable binary array.
+    /// </summary>
+    /// <typeparam name="T">binary unit (Int8, Int16 etc)</typeparam>
     public abstract class ColorEncoderBase<T> : UdonSharpBehaviour where T : struct
     {
         public abstract int PackUnitLength { get; }
