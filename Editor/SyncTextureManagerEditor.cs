@@ -20,7 +20,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
 
         void OnEnable()
         {
-            TargetUdonBehaviour = (target as UdonSharpBehaviour).GetComponent<UdonBehaviour>();
+            TargetUdonBehaviour = UdonSharpEditorUtility.GetBackingUdonBehaviour(target as SyncTextureManager);
             SyncTextures = serializedObject.FindProperty("SyncTextures");
             SyncTexturesList = new ReorderableList(serializedObject, SyncTextures, true, true, true, true);
             SyncTexturesList.drawHeaderCallback = (Rect rect) =>
