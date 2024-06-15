@@ -15,14 +15,14 @@ namespace net.narazaka.vrchat.sync_texture {
 
         public override void OnPlayerJoined(VRCPlayerApi player)
         {
-            if (player.isLocal || !Networking.IsOwner(SyncTextureManager.gameObject)) return;
+            if (player.isLocal) return;
             SendCustomEventDelayedSeconds(nameof(StartSync), Delay);
         }
 
         public void StartSync()
         {
             if (!Networking.IsOwner(SyncTextureManager.gameObject)) return;
-            SyncTextureManager.StartSyncAll();
+            SyncTextureManager.StartSyncAll(true);
         }
     }
 }

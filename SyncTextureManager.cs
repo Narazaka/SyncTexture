@@ -15,11 +15,30 @@ namespace net.narazaka.vrchat.sync_texture
         public SyncTextureBase[] SyncTextures;
         [UdonSynced]
         sbyte SendingIndex = -1;
+        [UdonSynced]
+        bool Resend;
 
         [PublicAPI]
-        public void StartSyncAll()
+        public bool Sending => SendingIndex >= 0;
+
+        [PublicAPI]
+        public void RequestResend()
         {
-            if (SendingIndex >= 0) return;
+            Resend = true;
+            RequestSerialization();
+        }
+
+        [PublicAPI]
+        public void StartSyncAll(bool requestResendWhenSending = false)
+        {
+            if (Sending)
+            {
+                if (requestResendWhenSending)
+                {
+                    RequestResend();
+                }
+                return;
+            }
             ForceStartSyncAll();
         }
 
@@ -35,7 +54,7 @@ namespace net.narazaka.vrchat.sync_texture
         [PublicAPI]
         public void CancelSync()
         {
-            if (SendingIndex < 0) return;
+            if (!Sending) return;
             SyncTextures[SendingIndex].CancelSync();
             SendingIndex = -1;
             RequestSerialization();
@@ -49,6 +68,11 @@ namespace net.narazaka.vrchat.sync_texture
                 if (SendingIndex >= SyncTextures.Length)
                 {
                     SendingIndex = -1;
+                    if (Resend)
+                    {
+                        Resend = false;
+                        StartSyncAll();
+                    }
                     RequestSerialization();
                     return;
                 }
@@ -66,7 +90,7 @@ namespace net.narazaka.vrchat.sync_texture
         public override void OnOwnershipTransferred(VRCPlayerApi player)
         {
             if (!Networking.IsOwner(gameObject)) return;
-            if (SendingIndex < 0) return;
+            if (!Sending) return;
             SyncTextures[SendingIndex].ForceStartSync();
         }
     }
