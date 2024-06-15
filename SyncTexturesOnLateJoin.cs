@@ -11,6 +11,8 @@ namespace net.narazaka.vrchat.sync_texture {
         [SerializeField]
         SyncTextureManager SyncTextureManager;
         [SerializeField]
+        bool ForceSyncOnStart;
+        [SerializeField]
         float Delay = 8f;
 
         public override void OnPlayerJoined(VRCPlayerApi player)
@@ -22,7 +24,13 @@ namespace net.narazaka.vrchat.sync_texture {
         public void StartSync()
         {
             if (!Networking.IsOwner(SyncTextureManager.gameObject)) return;
-            SyncTextureManager.StartSyncAll(true);
+            if (ForceSyncOnStart)
+            {
+                SyncTextureManager.ForceStartSyncAll();
+            } else
+            {
+                SyncTextureManager.StartSyncAll(true);
+            }
         }
     }
 }
