@@ -29,10 +29,25 @@ bool CanStartSync;
 float Progress;
 void StartSync(); // take ownership and send
 void ForceStartSync();
+
+// SyncTextureManager
+bool Sending;
+void RequestResend();
+void StartSyncAll(bool requestResendWhenSending = false);
+void ForceStartSyncAll();
+void CancelSync();
 ```
 
 ## 更新履歴
 
+- 2.0.0
+  - 新機能
+    - VRCAsyncGPUReadbackを用いた高速読取処理が可能に
+    - 再送信の考慮
+    - 新しいColorEncoder
+  - 破壊的変更
+    - ColorEncoder指定まわりが変更され、再設定が必要になっています。
+    - コールバックAPIのCallbackListener, PrepareCallbackListenerがCallbackListenersに統合されています。
 - 1.3.0
   - サンプル追加
 - 1.2.0
