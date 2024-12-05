@@ -99,9 +99,10 @@ namespace net.narazaka.vrchat.sync_texture
 
         public override void OnOwnershipTransferred(VRCPlayerApi player)
         {
-            if (!Networking.IsOwner(gameObject)) return;
+            // player is owner
+            if (!player.isLocal) return;
             
-            Send();
+            SendCustomEventDelayedSeconds(nameof(Send), 2);
         }
     }
 }
