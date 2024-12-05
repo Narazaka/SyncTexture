@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
-  m_Name: SyncTexturesOnLateJoin
+  m_Name: RequestSyncTexture
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: a569f3f0d2dbe8040b35e9bbee881078,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: affead9b684adb64ebff9b4b7ce384a3,
     type: 2}
   udonAssembly: 
   assemblyError: 
-  sourceCsScript: {fileID: 11500000, guid: 207df2a8019c9234d99a50caace66be1, type: 3}
+  sourceCsScript: {fileID: 11500000, guid: d777506b830ecdf4bb7e0ca3bbbabcbf, type: 3}
   scriptVersion: 2
   compiledVersion: 2
   behaviourSyncMode: 1
-  hasInteractEvent: 0
-  scriptID: 8100210175251213104
+  hasInteractEvent: 1
+  scriptID: -9113643327544977197
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -50,13 +50,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: SyncTextureManager
+      Data: syncTextureManager
     - Name: $v
       Entry: 7
       Data: 2|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: SyncTextureManager
+      Data: syncTextureManager
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 3|System.RuntimeType, mscorlib
@@ -116,25 +116,25 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: ForceSyncOnStart
+      Data: syncTexture
     - Name: $v
       Entry: 7
       Data: 7|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: ForceSyncOnStart
+      Data: syncTexture
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 8|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: System.Boolean, mscorlib
+      Data: net.narazaka.vrchat.sync_texture.SyncTexture, SyncTexture
     - Name: 
       Entry: 8
       Data: 
     - Name: <SystemType>k__BackingField
       Entry: 9
-      Data: 8
+      Data: 4
     - Name: <SyncMode>k__BackingField
       Entry: 7
       Data: System.Nullable`1[[UdonSharp.UdonSyncMode, UdonSharp.Runtime]], mscorlib
@@ -176,19 +176,19 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: Delay
+      Data: resendWhenExistsAndNowSending
     - Name: $v
       Entry: 7
       Data: 11|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: Delay
+      Data: resendWhenExistsAndNowSending
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 12|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: System.Single, mscorlib
+      Data: System.Boolean, mscorlib
     - Name: 
       Entry: 8
       Data: 

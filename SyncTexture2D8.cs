@@ -4,23 +4,74 @@ using System;
 
 namespace net.narazaka.vrchat.sync_texture
 {
-    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
-    public class SyncTexture2D8 : SyncTexture2D
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    public class SyncTexture2D8 : SyncTexture2DTyped
     {
         [SerializeField]
         public ColorEncoder8 ColorEncoder;
-        [UdonSynced]
-        byte[] SyncColors;
-        byte[] ReceiveColors = new byte[0];
+        [SerializeField]
+        SyncTextureData8[] DataList;
 
+        public override int UnitByteLength => 1;
         protected override int PackUnitLength => ColorEncoder.PackUnitLength;
-        protected override Color[] UnpackReceiveColors() => ColorEncoder.Unpack(ReceiveColors);
-        protected override Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength) => ColorEncoder.Unpack(ReceiveColors, startReceivePixelIndex, new Color[pixelLength], 0, pixelLength);
-        protected override void InitializeSyncColors(int pixelLength) => SyncColors = new byte[pixelLength * PackUnitLength];
-        protected override void InitializeReceiveColors() => ReceiveColors = new byte[PackUnitLength * Width * Height];
-        protected override bool ReceiveColorsIsEmpty => ReceiveColors == null || ReceiveColors.Length == 0;
-        protected override bool ReceiveColorsIsValid => ReceiveColors != null && ReceiveColors.Length == PackUnitLength * Width * Height;
-        protected override void CopySourceColorsToSyncColors(int startSourceIndex, int pixelLength) => ColorEncoder.Pack(SourceColors, startSourceIndex, SyncColors, 0, pixelLength);
-        protected override void CopySyncColorsToReceiveColors(int startReceiveIndex) => Array.Copy(SyncColors, 0, ReceiveColors, startReceiveIndex, SyncColors.Length);
+
+        byte[] sendData;
+
+        protected override void InitializeSendData(int pixelLength)
+        {
+            sendData = new byte[pixelLength * PackUnitLength];
+        }
+
+        protected override void PackColorsPartial(int startColorIndex, int startPixelIndex, int pixelLength)
+        {
+            ColorEncoder.Pack(SourceColors, startColorIndex, sendData, startPixelIndex, pixelLength);
+        }
+
+        protected override void DoSyncColors()
+        {
+            DataList[SyncIndex].Send(sendData);
+#if UNITY_EDITOR
+            DataList[SyncIndex].OnDeserialization();
+            DataList[SyncIndex].OnPostSerialization(new VRC.Udon.Common.SerializationResult(true, 1));
+#endif
+        }
+
+        byte[] data = new byte[0];
+
+        public void ApplyReceiveColorsPartial(SyncTextureData8 data)
+        {
+            if (!ReceiveEnabled) return;
+            var syncIndex = Array.IndexOf(DataList, data);
+            if (syncIndex == -1) return;
+            var minHeight = syncIndex * EffectiveBulkLineCount;
+            var height = Mathf.Min(EffectiveBulkLineCount, Height - minHeight);
+            var toCall = linesEmpty;
+            EnsureData();
+            PushLines(minHeight, height);
+            PushData(data.Data);
+            if (toCall)
+            {
+                ApplyReceiveColorsPartialLine();
+            }
+        }
+
+        protected override Color[] UnpackLineColors(int index) => ColorEncoder.Unpack(data, index * Width, Width);
+
+        protected void PushData(byte[] pushData)
+        {
+            var newData = new byte[data.Length + pushData.Length];
+            data.CopyTo(newData, 0);
+            pushData.CopyTo(newData, data.Length);
+            data = newData;
+        }
+
+        protected override void ShiftData(int count)
+        {
+            var newData = new byte[data.Length - count * Width * PackUnitLength];
+            Array.Copy(data, count * Width * PackUnitLength, newData, 0, newData.Length);
+            data = newData;
+        }
+
+        protected override void ClearData() => data = new byte[0];
     }
 }
