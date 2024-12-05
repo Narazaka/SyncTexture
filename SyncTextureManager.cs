@@ -75,6 +75,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         void ShiftQueue()
         {
+            if (SendIndexQueue.Length == 0) return;
             var newToSendIndexes = new sbyte[SendIndexQueue.Length - 1];
             System.Array.Copy(SendIndexQueue, 1, newToSendIndexes, 0, newToSendIndexes.Length);
             SendIndexQueue = newToSendIndexes;
@@ -82,8 +83,6 @@ namespace net.narazaka.vrchat.sync_texture
 
         void Send()
         {
-            if (!Sending) return;
-
             SyncTextures[SendingIndex].ForceStartSync();
         }
 
