@@ -1,12 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UdonSharpEditor;
 using System.Linq;
 using System.Reflection;
 using UnityEngine.SceneManagement;
-using VRC.Udon.Serialization.OdinSerializer.Utilities;
 
 namespace net.narazaka.vrchat.sync_texture.editor
 {
@@ -190,10 +188,14 @@ namespace net.narazaka.vrchat.sync_texture.editor
             {
                 EditorGUILayout.HelpBox("SyncInterval must be positive", MessageType.Error);
             }
-            EditorGUILayout.PropertyField(DataList, true);
+            EditorGUILayout.PropertyField(DataList, new GUIContent($"{DataList.displayName} (automatically set)"), true);
             if (stat.ChunkCount > 0)
             {
                 SetDataList(DataList, stat.ChunkCount);
+            }
+            if (GUILayout.Button("Set All DataList (optional)"))
+            {
+                SetAllDataList();
             }
             EditorGUILayout.PropertyField(CallbackListeners);
             EditorGUILayout.PropertyField(PrepareCallbackAsync);
@@ -313,6 +315,30 @@ namespace net.narazaka.vrchat.sync_texture.editor
             }
         }
 
+        public static void SetAllDataList()
+        {
+            var syncTextures = Object.FindObjectsByType<SyncTexture2D>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var invalids = new List<SyncTexture2D>();
+            foreach (var syncTexture in syncTextures)
+            {
+                var serializedObject = new SerializedObject(syncTexture);
+                var chunkCount = GetSyncTextureTypeStat(serializedObject).ChunkCount;
+                if (chunkCount > 0)
+                {
+                    SetDataList(serializedObject.FindProperty("DataList"), chunkCount);
+                }
+                else
+                {
+                    invalids.Add(syncTexture);
+                }
+            }
+            if (invalids.Count > 0)
+            {
+                EditorUtility.DisplayDialog("Warning", $"Some SyncTexture2D has invalid settings:\n{string.Join(", ", invalids.Select(s => s.name))}", "OK");
+                EditorGUIUtility.PingObject(invalids[0]);
+            }
+        }
+
         public class SyncTextureTypeStat
         {
             public int UnitByteLength;
@@ -358,7 +384,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             stat.BulkByteCount = stat.BulkUnitCount * stat.UnitByteLength;
             stat.DataLimitRatePerSerialization = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSerialization;
             stat.DataLimitRatePerSecond = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSecond;
-            stat.ChunkCount = Mathf.CeilToInt((float)sourceTexture.height / stat.EffectiveBulkLineCount);
+            stat.ChunkCount = SyncTexture.GetChunkCount(sourceTexture.height, stat.EffectiveBulkLineCount);
             return stat;
         }
 
