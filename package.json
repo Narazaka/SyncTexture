@@ -11,6 +11,6 @@
   "type": "tool",
   "url" : "https://github.com/Narazaka/SyncTexture.git",
   "vpmDependencies": {
-    "com.vrchat.worlds": ">=3.0.9"
+    "com.vrchat.worlds": ">=3.2.0"
   }
 }
