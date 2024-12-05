@@ -5,6 +5,7 @@ using VRC.Udon;
 
 namespace net.narazaka.vrchat.sync_texture.samples
 {
+    [AddComponentMenu("")]
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class RequestSyncTexture : UdonSharpBehaviour
     {

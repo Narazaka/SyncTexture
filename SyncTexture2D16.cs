@@ -4,6 +4,7 @@ using System;
 
 namespace net.narazaka.vrchat.sync_texture
 {
+    [AddComponentMenu("Sync Texture/Sync Texture 2D16")]
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class SyncTexture2D16 : SyncTexture2DTyped
     {

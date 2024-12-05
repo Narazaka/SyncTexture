@@ -8,6 +8,7 @@ using VRC.Udon.Common.Interfaces;
 
 namespace net.narazaka.vrchat.sync_texture
 {
+    [AddComponentMenu("Sync Texture/Sync Texture Manager")]
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class SyncTextureManager : UdonSharpBehaviour
     {
