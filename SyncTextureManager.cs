@@ -34,7 +34,8 @@ namespace net.narazaka.vrchat.sync_texture
         {
             if (!Networking.IsOwner(gameObject)) return;
 
-            var existIndex = System.Array.IndexOf(SendIndexQueue, index);
+            var existIndex = System.Array.IndexOf(SendIndexQueue, (sbyte)index);
+            Debug.Log($"[SyncTextureManager] RequestSyncTextureByIndex({index}) exist queue index={existIndex}");
             if (existIndex != -1)
             {
                 if (existIndex == 0 && resendWhenExistsAndNowSending)
@@ -83,6 +84,8 @@ namespace net.narazaka.vrchat.sync_texture
 
         void Send()
         {
+            if (!Sending) return;
+
             SyncTextures[SendingIndex].ForceStartSync();
         }
 
