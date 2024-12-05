@@ -66,6 +66,8 @@ namespace net.narazaka.vrchat.sync_texture
             ShiftLines(count);
             ShiftData(count);
 
+            Callback(nameof(SyncTextureCallbackListener.OnReceiveApplied));
+
             if (linesEmpty) return;
 
             SendCustomEventDelayedFrames(nameof(ApplyReceiveColorsPartialLine), 1);

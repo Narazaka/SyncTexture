@@ -210,10 +210,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSync));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncComplete));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncCanceled));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceive));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveComplete));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveApplied));
                     EditorGUILayout.HelpBox("async CallbackListener preparing should call this:", MessageType.Info);
                     EditorGUILayout.TextField(nameof(SyncTexture.OnPrepared));
                 }

@@ -199,7 +199,7 @@ namespace net.narazaka.vrchat.sync_texture
             SendCustomEventDelayedSeconds(nameof(SyncNext), SyncInterval);
         }
 
-        void Callback(string eventName)
+        protected void Callback(string eventName)
         {
             if (CallbackListeners != null)
             {
