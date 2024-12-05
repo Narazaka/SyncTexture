@@ -82,7 +82,7 @@ namespace net.narazaka.vrchat.sync_texture
             SendIndexQueue = newToSendIndexes;
         }
 
-        void Send()
+        public void Send()
         {
             if (!Sending) return;
 
@@ -102,7 +102,7 @@ namespace net.narazaka.vrchat.sync_texture
             // player is owner
             if (!player.isLocal) return;
             
-            SendCustomEventDelayedSeconds(nameof(Send), 2);
+            SendCustomEventDelayedSeconds(nameof(Send), 1);
         }
     }
 }
