@@ -63,6 +63,8 @@ namespace net.narazaka.vrchat.sync_texture
 
         [PublicAPI]
         public static int GetChunkCount(int height, int effectiveBulkLineCount) => Mathf.CeilToInt((float) height / effectiveBulkLineCount);
+        [PublicAPI]
+        public int ChunkCount => GetChunkCount(Height, EffectiveBulkLineCount);
 
         [PublicAPI]
         public static int GetEffectiveBulkLineCount(int bulkLineCount, float bulkRateOfNetworkSpec, int width, int unitByteLength, int packUnitLength) =>
