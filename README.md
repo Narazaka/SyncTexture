@@ -31,6 +31,15 @@ void RequestSyncTexture(SyncTextureBase syncTexture, bool resendWhenExistsAndNow
 
 ## 更新履歴
 
+- 3.0.0
+  - アーキテクチャの一新
+    - インスタンスに情報が保持される仕組みにし、一般的なケースでlate joinerの同期速度を飛躍的に向上。
+  - 破壊的変更
+    - アーキテクチャの一新によりAPIが大幅に変更されました。
+    - 一般的なケースでは以下の手順でマイグレーション出来ると思います。
+      1. SyncTexture2DのBulkLineCountを再設定する。
+      2. 任意のSyncTexture2Dの「Set All DataList」ボタンを押す。
+      3. SyncTexturesOnLateJoinを削除し、`SyncTextureManager.RequestSyncTexture()`を呼ぶ仕組みを実装する。
 - 2.0.0
   - 新機能
     - VRCAsyncGPUReadbackを用いた高速読取処理が可能に
