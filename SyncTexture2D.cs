@@ -1,16 +1,26 @@
-
 using UdonSharp;
 using UnityEngine;
 using System;
 using VRC.Udon;
 using VRC.SDK3.Rendering;
 using VRC.Udon.Common.Interfaces;
-
+using JetBrains.Annotations;
 
 namespace net.narazaka.vrchat.sync_texture
 {
     public abstract class SyncTexture2D : SyncTexture
     {
+        /// <summary>
+        /// must not change at runtime
+        /// </summary>
+        [SerializeField]
+        public int TextureWidth;
+        /// <summary>
+        /// must not change at runtime
+        /// </summary>
+        [SerializeField]
+        public int TextureHeight;
+        [PublicAPI]
         [SerializeField]
         public Texture Source;
         [SerializeField]
@@ -25,8 +35,8 @@ namespace net.narazaka.vrchat.sync_texture
         void StoreSourceColors(Color32[] colors, int startPixelIndex) => Array.Copy(colors, 0, SourceColors, startPixelIndex, colors.Length);
 
         protected override bool ReadingSource => ReadIndex >= 0;
-        protected override int Width => Source.width;
-        protected override int Height => Source.height;
+        protected override int Width => TextureWidth;
+        protected override int Height => TextureHeight;
         protected override int SourceColorsLength => SourceColors.Length;
 
         protected override void StartReadSource()

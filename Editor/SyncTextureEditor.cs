@@ -38,6 +38,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
             TextureFormat.RHalf,
         };
         SerializedProperty ReceiveEnabled;
+        SerializedProperty TextureWidth;
+        SerializedProperty TextureHeight;
         SerializedProperty Source;
         SerializedProperty Target;
         SerializedProperty ColorEncoder;
@@ -54,6 +56,8 @@ namespace net.narazaka.vrchat.sync_texture.editor
         void OnEnable()
         {
             ReceiveEnabled = serializedObject.FindProperty("ReceiveEnabled");
+            TextureWidth = serializedObject.FindProperty("TextureWidth");
+            TextureHeight = serializedObject.FindProperty("TextureHeight");
             Source = serializedObject.FindProperty("Source");
             Target = serializedObject.FindProperty("Target");
             ColorEncoder = serializedObject.FindProperty("ColorEncoder");
@@ -72,20 +76,35 @@ namespace net.narazaka.vrchat.sync_texture.editor
 
             serializedObject.Update();
             EditorGUILayout.PropertyField(ReceiveEnabled);
+            EditorGUILayout.HelpBox("If false locally, data is still received but not rendered.", MessageType.Info);
+
+            EditorGUI.BeginDisabledGroup(Source.objectReferenceValue != null || Target.objectReferenceValue != null);
+            var sizeRect = EditorGUILayout.GetControlRect(GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            EditorGUI.LabelField(new Rect(sizeRect) { width = EditorGUIUtility.labelWidth }, "Texture Size");
+            sizeRect.x += EditorGUIUtility.labelWidth;
+            sizeRect.width -= EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 40;
+            sizeRect.width = sizeRect.width / 2;
+            EditorGUI.PropertyField(sizeRect, TextureWidth, new GUIContent("Width"));
+            sizeRect.x += sizeRect.width;
+            EditorGUI.PropertyField(sizeRect, TextureHeight, new GUIContent("Height"));
+            EditorGUIUtility.labelWidth = 0;
+            EditorGUI.EndDisabledGroup();
+
             EditorGUILayout.PropertyField(Source);
             EditorGUILayout.PropertyField(Target);
+            var sizeCheckResult = EnsureSize(Source: Source, Target: Target, TextureWidth: TextureWidth, TextureHeight: TextureHeight);
+            if (sizeCheckResult == SizeCheckResult.SizeNotSet)
+            {
+                EditorGUILayout.HelpBox("Texture Size must be set. Please set the texture or set the size manually.", MessageType.Error);
+            }
+            if (sizeCheckResult == SizeCheckResult.TextureSizeNotSame)
+            {
+                EditorGUILayout.HelpBox("Source and Target must be same size", MessageType.Error);
+            }
             if (Source.objectReferenceValue == null || Target.objectReferenceValue == null)
             {
-                EditorGUILayout.HelpBox("Source and Target must be set", MessageType.Error);
-            }
-            if (Source.objectReferenceValue != null && Target.objectReferenceValue != null)
-            {
-                var source = (Texture)Source.objectReferenceValue;
-                var target = (Texture2D)Target.objectReferenceValue;
-                if (source.width != target.width || source.height != target.height)
-                {
-                    EditorGUILayout.HelpBox("Source and Target must be same size", MessageType.Error);
-                }
+                EditorGUILayout.HelpBox("Source and Target must be set when runtime.", MessageType.Warning);
             }
             CheckTexture2DReadable(Source);
             CheckTexture2DReadable(Target);
@@ -172,7 +191,7 @@ namespace net.narazaka.vrchat.sync_texture.editor
             {
                 EditorGUILayout.PropertyField(BulkLineCount);
             }
-            var stat = GetSyncTextureTypeStat(serializedObject, Source: Source, ColorEncoder: ColorEncoder, BulkLineCount: BulkLineCount, BulkRateOfNetworkSpec: BulkRateOfNetworkSpec);
+            var stat = GetSyncTextureStat(serializedObject, TextureWidth: TextureWidth, TextureHeight: TextureHeight, ColorEncoder: ColorEncoder, BulkLineCount: BulkLineCount, BulkRateOfNetworkSpec: BulkRateOfNetworkSpec);
             if (stat != null)
             {
                 EditorGUILayout.HelpBox($"{stat.ChunkCount} steps : {stat.BulkByteCount} bytes/step.", MessageType.Info);
@@ -322,15 +341,19 @@ namespace net.narazaka.vrchat.sync_texture.editor
             foreach (var syncTexture in syncTextures)
             {
                 var serializedObject = new SerializedObject(syncTexture);
-                var chunkCount = GetSyncTextureTypeStat(serializedObject).ChunkCount;
-                if (chunkCount > 0)
-                {
-                    SetDataList(serializedObject.FindProperty("DataList"), chunkCount);
-                }
-                else
+                serializedObject.Update();
+                if (EnsureSize(serializedObject) != SizeCheckResult.Success)
                 {
                     invalids.Add(syncTexture);
+                    continue;
                 }
+                var chunkCount = GetSyncTextureStat(serializedObject).ChunkCount;
+                if (chunkCount == 0)
+                {
+                    invalids.Add(syncTexture);
+                    continue;
+                }
+                SetDataList(serializedObject.FindProperty("DataList"), chunkCount);
             }
             if (invalids.Count > 0)
             {
@@ -339,7 +362,46 @@ namespace net.narazaka.vrchat.sync_texture.editor
             }
         }
 
-        public class SyncTextureTypeStat
+        public enum SizeCheckResult
+        {
+            Success = 0,
+            SizeNotSet = 1 << 0,
+            TextureSizeNotSame = 1 << 1,
+        }
+
+        public static SizeCheckResult EnsureSize(SerializedObject serializedObject)
+        {
+            return EnsureSize(serializedObject.FindProperty("Source"), serializedObject.FindProperty("Target"), serializedObject.FindProperty("TextureWidth"), serializedObject.FindProperty("TextureHeight"));
+        }
+
+        public static SizeCheckResult EnsureSize(SerializedProperty Source, SerializedProperty Target, SerializedProperty TextureWidth, SerializedProperty TextureHeight)
+        {
+            if (Source.objectReferenceValue != null || Target.objectReferenceValue != null)
+            {
+                var texture = Source.objectReferenceValue as Texture ?? Target.objectReferenceValue as Texture;
+                if (texture != null)
+                {
+                    TextureWidth.intValue = texture.width;
+                    TextureHeight.intValue = texture.height;
+                }
+            }
+            if (TextureWidth.intValue <= 0 || TextureHeight.intValue <= 0)
+            {
+                return SizeCheckResult.SizeNotSet;
+            }
+            if (Source.objectReferenceValue != null && Target.objectReferenceValue != null)
+            {
+                var source = (Texture)Source.objectReferenceValue;
+                var target = (Texture2D)Target.objectReferenceValue;
+                if (source.width != target.width || source.height != target.height)
+                {
+                    return SizeCheckResult.TextureSizeNotSame;
+                }
+            }
+            return SizeCheckResult.Success;
+        }
+
+        public class SyncTextureStat
         {
             public int UnitByteLength;
             public int PackUnitLength;
@@ -352,15 +414,16 @@ namespace net.narazaka.vrchat.sync_texture.editor
             public int ChunkCount;
         }
 
-        public static SyncTextureTypeStat GetSyncTextureTypeStat(SerializedObject serializedObject, SerializedProperty Source = null, SerializedProperty ColorEncoder = null, SerializedProperty BulkLineCount = null, SerializedProperty BulkRateOfNetworkSpec = null)
+        public static SyncTextureStat GetSyncTextureStat(SerializedObject serializedObject, SerializedProperty TextureWidth = null, SerializedProperty TextureHeight = null, SerializedProperty ColorEncoder = null, SerializedProperty BulkLineCount = null, SerializedProperty BulkRateOfNetworkSpec = null)
         {
-            if (Source == null) Source = serializedObject.FindProperty("Source");
+            if (TextureWidth == null) TextureWidth = serializedObject.FindProperty("TextureWidth");
+            if (TextureHeight == null) TextureHeight = serializedObject.FindProperty("TextureHeight");
             if (ColorEncoder == null) ColorEncoder = serializedObject.FindProperty("ColorEncoder");
             if (BulkLineCount == null) BulkLineCount = serializedObject.FindProperty("BulkLineCount");
             if (BulkRateOfNetworkSpec == null) BulkRateOfNetworkSpec = serializedObject.FindProperty("BulkRateOfNetworkSpec");
 
-            var stat = new SyncTextureTypeStat();
-            if (ColorEncoder.objectReferenceValue == null || Source.objectReferenceValue == null)
+            var stat = new SyncTextureStat();
+            if (ColorEncoder.objectReferenceValue == null || TextureWidth.intValue <= 0 || TextureHeight.intValue <= 0)
             {
                 return stat;
             }
@@ -376,15 +439,14 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     stat.UnitByteLength = 2;
                     break;
             }
-            var sourceTexture = (Texture)Source.objectReferenceValue;
-            var width = sourceTexture.width;
+            var width = TextureWidth.intValue;
             stat.EffectiveBulkLineCount = SyncTexture.GetEffectiveBulkLineCount(BulkLineCount.intValue, BulkRateOfNetworkSpec.floatValue, width, stat.UnitByteLength, stat.PackUnitLength);
             stat.BulkPixelCount = stat.EffectiveBulkLineCount * width;
             stat.BulkUnitCount = stat.BulkPixelCount * stat.PackUnitLength;
             stat.BulkByteCount = stat.BulkUnitCount * stat.UnitByteLength;
             stat.DataLimitRatePerSerialization = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSerialization;
             stat.DataLimitRatePerSecond = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSecond;
-            stat.ChunkCount = SyncTexture.GetChunkCount(sourceTexture.height, stat.EffectiveBulkLineCount);
+            stat.ChunkCount = SyncTexture.GetChunkCount(TextureHeight.intValue, stat.EffectiveBulkLineCount);
             return stat;
         }
 
