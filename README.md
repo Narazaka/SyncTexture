@@ -21,25 +21,25 @@ Texture2Dを同期します。Render TextureからTexture2Dへの変換などは
 基本的に他のUdonからの制御を前提にしています。
 
 - SyncTextureManager: 順番に同期
-- SyncTexturesOnLateJoin: late joinerが来たら順番に同期を開始
 
 ```
-// SyncTexture
-bool CanStartSync;
-float Progress;
-void StartSync(); // take ownership and send
-void ForceStartSync();
-
 // SyncTextureManager
 bool Sending;
-void RequestResend();
-void StartSyncAll(bool requestResendWhenSending = false);
-void ForceStartSyncAll();
-void CancelSync();
+void RequestSyncTextureByIndex(int index, bool resendWhenExistsAndNowSending = true);
+void RequestSyncTexture(SyncTextureBase syncTexture, bool resendWhenExistsAndNowSending = true);
 ```
 
 ## 更新履歴
 
+- 3.0.0
+  - アーキテクチャの一新
+    - インスタンスに情報が保持される仕組みにし、一般的なケースでlate joinerの同期速度を飛躍的に向上。
+  - 破壊的変更
+    - アーキテクチャの一新によりAPIが大幅に変更されました。
+    - 一般的なケースでは以下の手順でマイグレーション出来ると思います。
+      1. SyncTexture2DのBulkLineCountを再設定する。
+      2. 任意のSyncTexture2Dの「Set All DataList」ボタンを押す。
+      3. SyncTexturesOnLateJoinを削除し、`SyncTextureManager.RequestSyncTexture()`を呼ぶ仕組みを実装する。
 - 2.0.0
   - 新機能
     - VRCAsyncGPUReadbackを用いた高速読取処理が可能に

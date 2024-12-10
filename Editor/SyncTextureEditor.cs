@@ -1,12 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UdonSharpEditor;
 using System.Linq;
 using System.Reflection;
 using UnityEngine.SceneManagement;
-using VRC.Udon.Serialization.OdinSerializer.Utilities;
 
 namespace net.narazaka.vrchat.sync_texture.editor
 {
@@ -39,31 +37,37 @@ namespace net.narazaka.vrchat.sync_texture.editor
             TextureFormat.RGHalf,
             TextureFormat.RHalf,
         };
+        SerializedProperty ReceiveEnabled;
+        SerializedProperty TextureWidth;
+        SerializedProperty TextureHeight;
         SerializedProperty Source;
         SerializedProperty Target;
         SerializedProperty ColorEncoder;
         SerializedProperty GetPixelsBulkCount;
-        SerializedProperty BulkCount;
+        SerializedProperty BulkLineCount;
+        SerializedProperty BulkRateOfNetworkSpec;
         SerializedProperty SyncInterval;
-        SerializedProperty ShowProgress;
         SerializedProperty CallbackListeners;
         SerializedProperty PrepareCallbackAsync;
-        SerializedProperty SyncEnabled;
+        SerializedProperty DataList;
         bool ShowColorEncoders;
         bool ShowCalllbackHelp;
 
         void OnEnable()
         {
+            ReceiveEnabled = serializedObject.FindProperty("ReceiveEnabled");
+            TextureWidth = serializedObject.FindProperty("TextureWidth");
+            TextureHeight = serializedObject.FindProperty("TextureHeight");
             Source = serializedObject.FindProperty("Source");
             Target = serializedObject.FindProperty("Target");
             ColorEncoder = serializedObject.FindProperty("ColorEncoder");
             GetPixelsBulkCount = serializedObject.FindProperty("GetPixelsBulkCount");
-            BulkCount = serializedObject.FindProperty("BulkCount");
+            BulkLineCount = serializedObject.FindProperty("BulkLineCount");
+            BulkRateOfNetworkSpec = serializedObject.FindProperty("BulkRateOfNetworkSpec");
             SyncInterval = serializedObject.FindProperty("SyncInterval");
-            ShowProgress = serializedObject.FindProperty("ShowProgress");
             CallbackListeners = serializedObject.FindProperty("CallbackListeners");
             PrepareCallbackAsync = serializedObject.FindProperty("PrepareCallbackAsync");
-            SyncEnabled = serializedObject.FindProperty("SyncEnabled");
+            DataList = serializedObject.FindProperty("DataList");
         }
 
         public override void OnInspectorGUI()
@@ -71,20 +75,36 @@ namespace net.narazaka.vrchat.sync_texture.editor
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target)) return;
 
             serializedObject.Update();
+            EditorGUILayout.PropertyField(ReceiveEnabled);
+            EditorGUILayout.HelpBox("If false locally, data is still received but not rendered.", MessageType.Info);
+
+            EditorGUI.BeginDisabledGroup(Source.objectReferenceValue != null || Target.objectReferenceValue != null);
+            var sizeRect = EditorGUILayout.GetControlRect(GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            EditorGUI.LabelField(new Rect(sizeRect) { width = EditorGUIUtility.labelWidth }, "Texture Size");
+            sizeRect.x += EditorGUIUtility.labelWidth;
+            sizeRect.width -= EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 40;
+            sizeRect.width = sizeRect.width / 2;
+            EditorGUI.PropertyField(sizeRect, TextureWidth, new GUIContent("Width"));
+            sizeRect.x += sizeRect.width;
+            EditorGUI.PropertyField(sizeRect, TextureHeight, new GUIContent("Height"));
+            EditorGUIUtility.labelWidth = 0;
+            EditorGUI.EndDisabledGroup();
+
             EditorGUILayout.PropertyField(Source);
             EditorGUILayout.PropertyField(Target);
+            var sizeCheckResult = EnsureSize(Source: Source, Target: Target, TextureWidth: TextureWidth, TextureHeight: TextureHeight);
+            if (sizeCheckResult == SizeCheckResult.SizeNotSet)
+            {
+                EditorGUILayout.HelpBox("Texture Size must be set. Please set the texture or set the size manually.", MessageType.Error);
+            }
+            if (sizeCheckResult == SizeCheckResult.TextureSizeNotSame)
+            {
+                EditorGUILayout.HelpBox("Source and Target must be same size", MessageType.Error);
+            }
             if (Source.objectReferenceValue == null || Target.objectReferenceValue == null)
             {
-                EditorGUILayout.HelpBox("Source and Target must be set", MessageType.Error);
-            }
-            if (Source.objectReferenceValue != null && Target.objectReferenceValue != null)
-            {
-                var source = (Texture)Source.objectReferenceValue;
-                var target = (Texture2D)Target.objectReferenceValue;
-                if (source.width != target.width || source.height != target.height)
-                {
-                    EditorGUILayout.HelpBox("Source and Target must be same size", MessageType.Error);
-                }
+                EditorGUILayout.HelpBox("Source and Target must be set when runtime.", MessageType.Warning);
             }
             CheckTexture2DReadable(Source);
             CheckTexture2DReadable(Target);
@@ -141,54 +161,61 @@ namespace net.narazaka.vrchat.sync_texture.editor
                 EditorGUILayout.PropertyField(GetPixelsBulkCount);
                 EditorGUILayout.HelpBox("GetPixelsBulkCount affects sender performance", MessageType.Info);
             }
-            EditorGUILayout.PropertyField(BulkCount);
-            if (ColorEncoder.objectReferenceValue != null)
+            var rect = EditorGUILayout.GetControlRect(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing));
+            using (new EditorGUI.PropertyScope(rect, GUIContent.none, BulkLineCount))
             {
-                var colorEncoder = ColorEncoder.objectReferenceValue;
-                int packUnitLength = 1;
-                int bytes = 0;
-                switch (colorEncoder)
+                rect.height = EditorGUIUtility.singleLineHeight;
+                using (var check = new EditorGUI.ChangeCheckScope())
                 {
-                    case ColorEncoder8 c:
-                        packUnitLength = c.PackUnitLength;
-                        bytes = 1;
-                        break;
-                    case ColorEncoder16 c:
-                        packUnitLength = c.PackUnitLength;
-                        bytes = 2;
-                        break;
+                    var bulkLineCount = EditorGUI.ToggleLeft(rect, "Calc BulkLineCount by network spec per second", BulkLineCount.intValue == 0);
+                    if (check.changed)
+                    {
+                        BulkLineCount.intValue = bulkLineCount ? 0 : 10;
+                    }
                 }
-
-                if (BulkCount.intValue % packUnitLength != 0)
+                rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                using (var check = new EditorGUI.ChangeCheckScope())
                 {
-                    EditorGUILayout.HelpBox($"BulkCount must be multiple of {packUnitLength}", MessageType.Error);
-                }
-                var SyncBytesPerSecond = BulkCount.intValue * bytes / SyncInterval.floatValue;
-                var specRate = SyncBytesPerSecond / (11f * 1024);
-                EditorGUILayout.HelpBox($"sync {SyncBytesPerSecond} bytes/sec : {specRate * 100} % of network spec", MessageType.Info);
-                if (Source.objectReferenceValue != null)
-                {
-                    var sourceTexture = (Texture)Source.objectReferenceValue;
-                    var pixelCount = sourceTexture.width * sourceTexture.height;
-                    var bulkPixelCount = BulkCount.intValue / packUnitLength;
-                    var seconds = SyncInterval.floatValue * pixelCount / bulkPixelCount;
-                    EditorGUILayout.HelpBox($"total sync time will be {seconds} seconds", MessageType.Info);
-                }
-                if (specRate > 0.7f)
-                {
-                    EditorGUILayout.HelpBox("sync size is too big! reduce BulkCount or increase SyncInterval", MessageType.Warning);
+                    var bulkLineCount = EditorGUI.ToggleLeft(rect, "Calc BulkLineCount by network spec per serialization", BulkLineCount.intValue == -1);
+                    if (check.changed)
+                    {
+                        BulkLineCount.intValue = bulkLineCount ? -1 : 10;
+                    }
                 }
             }
-            if (BulkCount.intValue < 1)
+            if (BulkLineCount.intValue == 0 || BulkLineCount.intValue == -1)
             {
-                EditorGUILayout.HelpBox("BulkCount must be positive", MessageType.Error);
+                EditorGUILayout.PropertyField(BulkRateOfNetworkSpec);
+            }
+            else
+            {
+                EditorGUILayout.PropertyField(BulkLineCount);
+            }
+            var stat = GetSyncTextureStat(serializedObject, TextureWidth: TextureWidth, TextureHeight: TextureHeight, ColorEncoder: ColorEncoder, BulkLineCount: BulkLineCount, BulkRateOfNetworkSpec: BulkRateOfNetworkSpec);
+            if (stat != null)
+            {
+                EditorGUILayout.HelpBox($"{stat.ChunkCount} steps : {stat.BulkByteCount} bytes/step.", MessageType.Info);
+                EditorGUILayout.HelpBox($"{stat.DataLimitRatePerSecond * 100} % of network spec per second", stat.DataLimitRatePerSecond < 1 ? MessageType.Info : MessageType.Warning);
+                EditorGUILayout.HelpBox($"{stat.DataLimitRatePerSerialization * 100} % of network spec per serialization", stat.DataLimitRatePerSerialization < 1 ? MessageType.Info : MessageType.Error);
+            }
+            if (BulkLineCount.intValue < -1)
+            {
+                EditorGUILayout.HelpBox("BulkCount must be 0, -1 or a positive integer", MessageType.Error);
             }
             EditorGUILayout.PropertyField(SyncInterval);
             if (SyncInterval.floatValue < 0f)
             {
                 EditorGUILayout.HelpBox("SyncInterval must be positive", MessageType.Error);
             }
-            EditorGUILayout.PropertyField(ShowProgress);
+            EditorGUILayout.PropertyField(DataList, new GUIContent($"{DataList.displayName} (automatically set)"), true);
+            if (stat.ChunkCount > 0)
+            {
+                SetDataList(DataList, stat.ChunkCount);
+            }
+            if (GUILayout.Button("Set All DataList (optional)"))
+            {
+                SetAllDataList();
+            }
             EditorGUILayout.PropertyField(CallbackListeners);
             EditorGUILayout.PropertyField(PrepareCallbackAsync);
             ShowCalllbackHelp = EditorGUILayout.Foldout(ShowCalllbackHelp, "Callback Help");
@@ -204,20 +231,223 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSync));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncComplete));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnSyncCanceled));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveStart));
                     EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceive));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveComplete));
-                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
+                    EditorGUILayout.TextField(nameof(SyncTextureCallbackListener.OnReceiveApplied));
                     EditorGUILayout.HelpBox("async CallbackListener preparing should call this:", MessageType.Info);
                     EditorGUILayout.TextField(nameof(SyncTexture.OnPrepared));
                 }
             }
-            EditorGUILayout.PropertyField(SyncEnabled);
-            if (!SyncEnabled.boolValue)
-            {
-                EditorGUILayout.HelpBox("SyncEnabled is false. Set true at runtime.", MessageType.Warning);
-            }
             serializedObject.ApplyModifiedProperties();
+        }
+
+        public static void SetDataList(SerializedProperty DataList, int chunkCount)
+        {
+            var syncTexture2D = DataList.serializedObject.targetObject as SyncTexture2D;
+            var type = syncTexture2D.UnitByteLength switch
+            {
+                1 => typeof(SyncTextureData8),
+                2 => typeof(SyncTextureData16),
+                _ => null,
+            };
+
+            var count = 0;
+            var len = DataList.arraySize;
+            var uniq = new HashSet<SyncTextureData>();
+            for (var i = len - 1; i >= 0; i--)
+            {
+                var element = DataList.GetArrayElementAtIndex(i);
+                if (element.objectReferenceValue == null)
+                {
+                    DataList.DeleteArrayElementAtIndex(i);
+                    continue;
+                }
+                var data = element.objectReferenceValue as SyncTextureData;
+                if (data.GetType() != type)
+                {
+                    Undo.DestroyObjectImmediate(data.gameObject);
+                    DataList.DeleteArrayElementAtIndex(i);
+                    continue;
+                }
+                if (data.transform.parent != syncTexture2D.transform)
+                {
+                    Undo.RecordObject(data.transform, "Reparent SyncTextureData");
+                    data.transform.SetParent(syncTexture2D.transform, false);
+                }
+                if (!uniq.Add(data))
+                {
+                    DataList.DeleteArrayElementAtIndex(i);
+                    continue;
+                }
+                count++;
+            }
+            if (count < chunkCount)
+            {
+                for (var i = count; i < chunkCount; i++)
+                {
+                    DataList.InsertArrayElementAtIndex(i);
+                    var dataGo = new GameObject($"SyncTextureData{i}");
+                    dataGo.transform.SetParent(syncTexture2D.transform, false);
+                    var data = dataGo.AddComponent(type) as SyncTextureData;
+                    Undo.RegisterCreatedObjectUndo(dataGo, "Create SyncTextureData");
+                    DataList.GetArrayElementAtIndex(i).objectReferenceValue = data;
+                }
+            }
+            else if (count > chunkCount)
+            {
+                for (var i = count - 1; i >= chunkCount; i--)
+                {
+                    var element = DataList.GetArrayElementAtIndex(i);
+                    Undo.DestroyObjectImmediate((element.objectReferenceValue as SyncTextureData).gameObject);
+                    DataList.DeleteArrayElementAtIndex(i);
+                }
+            }
+            len = DataList.arraySize;
+            var allDataList = new List<SyncTextureData>();
+            for (var i = 0; i < len; ++i)
+            {
+                var element = DataList.GetArrayElementAtIndex(i).objectReferenceValue as SyncTextureData;
+                var index = element.transform.GetSiblingIndex();
+                if (index != i)
+                {
+                    Undo.RecordObject(element.transform, "Reorder SyncTextureData");
+                    element.transform.SetSiblingIndex(i);
+                }
+                var data = new SerializedObject(element);
+                data.Update();
+                data.FindProperty("SyncTexture2D").objectReferenceValue = syncTexture2D;
+                data.ApplyModifiedProperties();
+                allDataList.Add(element);
+            }
+            var toDestroies = new List<SyncTextureData>();
+            foreach (Transform child in syncTexture2D.transform)
+            {
+                var data = child.GetComponent<SyncTextureData>();
+                if (data == null) continue;
+                if (!allDataList.Contains(data))
+                {
+                    toDestroies.Add(data);
+                }
+            }
+            foreach (var data in toDestroies)
+            {
+                Undo.DestroyObjectImmediate(data.gameObject);
+            }
+        }
+
+        public static void SetAllDataList()
+        {
+            var syncTextures = Object.FindObjectsByType<SyncTexture2D>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var invalids = new List<SyncTexture2D>();
+            foreach (var syncTexture in syncTextures)
+            {
+                var serializedObject = new SerializedObject(syncTexture);
+                serializedObject.Update();
+                if (EnsureSize(serializedObject) != SizeCheckResult.Success)
+                {
+                    invalids.Add(syncTexture);
+                    continue;
+                }
+                var chunkCount = GetSyncTextureStat(serializedObject).ChunkCount;
+                if (chunkCount == 0)
+                {
+                    invalids.Add(syncTexture);
+                    continue;
+                }
+                SetDataList(serializedObject.FindProperty("DataList"), chunkCount);
+            }
+            if (invalids.Count > 0)
+            {
+                EditorUtility.DisplayDialog("Warning", $"Some SyncTexture2D has invalid settings:\n{string.Join(", ", invalids.Select(s => s.name))}", "OK");
+                EditorGUIUtility.PingObject(invalids[0]);
+            }
+        }
+
+        public enum SizeCheckResult
+        {
+            Success = 0,
+            SizeNotSet = 1 << 0,
+            TextureSizeNotSame = 1 << 1,
+        }
+
+        public static SizeCheckResult EnsureSize(SerializedObject serializedObject)
+        {
+            return EnsureSize(serializedObject.FindProperty("Source"), serializedObject.FindProperty("Target"), serializedObject.FindProperty("TextureWidth"), serializedObject.FindProperty("TextureHeight"));
+        }
+
+        public static SizeCheckResult EnsureSize(SerializedProperty Source, SerializedProperty Target, SerializedProperty TextureWidth, SerializedProperty TextureHeight)
+        {
+            if (Source.objectReferenceValue != null || Target.objectReferenceValue != null)
+            {
+                var texture = Source.objectReferenceValue as Texture ?? Target.objectReferenceValue as Texture;
+                if (texture != null)
+                {
+                    TextureWidth.intValue = texture.width;
+                    TextureHeight.intValue = texture.height;
+                }
+            }
+            if (TextureWidth.intValue <= 0 || TextureHeight.intValue <= 0)
+            {
+                return SizeCheckResult.SizeNotSet;
+            }
+            if (Source.objectReferenceValue != null && Target.objectReferenceValue != null)
+            {
+                var source = (Texture)Source.objectReferenceValue;
+                var target = (Texture2D)Target.objectReferenceValue;
+                if (source.width != target.width || source.height != target.height)
+                {
+                    return SizeCheckResult.TextureSizeNotSame;
+                }
+            }
+            return SizeCheckResult.Success;
+        }
+
+        public class SyncTextureStat
+        {
+            public int UnitByteLength;
+            public int PackUnitLength;
+            public int EffectiveBulkLineCount;
+            public int BulkPixelCount;
+            public int BulkUnitCount;
+            public int BulkByteCount;
+            public float DataLimitRatePerSerialization;
+            public float DataLimitRatePerSecond;
+            public int ChunkCount;
+        }
+
+        public static SyncTextureStat GetSyncTextureStat(SerializedObject serializedObject, SerializedProperty TextureWidth = null, SerializedProperty TextureHeight = null, SerializedProperty ColorEncoder = null, SerializedProperty BulkLineCount = null, SerializedProperty BulkRateOfNetworkSpec = null)
+        {
+            if (TextureWidth == null) TextureWidth = serializedObject.FindProperty("TextureWidth");
+            if (TextureHeight == null) TextureHeight = serializedObject.FindProperty("TextureHeight");
+            if (ColorEncoder == null) ColorEncoder = serializedObject.FindProperty("ColorEncoder");
+            if (BulkLineCount == null) BulkLineCount = serializedObject.FindProperty("BulkLineCount");
+            if (BulkRateOfNetworkSpec == null) BulkRateOfNetworkSpec = serializedObject.FindProperty("BulkRateOfNetworkSpec");
+
+            var stat = new SyncTextureStat();
+            if (ColorEncoder.objectReferenceValue == null || TextureWidth.intValue <= 0 || TextureHeight.intValue <= 0)
+            {
+                return stat;
+            }
+            var colorEncoder = ColorEncoder.objectReferenceValue;
+            switch (colorEncoder)
+            {
+                case ColorEncoder8 c:
+                    stat.PackUnitLength = c.PackUnitLength;
+                    stat.UnitByteLength = 1;
+                    break;
+                case ColorEncoder16 c:
+                    stat.PackUnitLength = c.PackUnitLength;
+                    stat.UnitByteLength = 2;
+                    break;
+            }
+            var width = TextureWidth.intValue;
+            stat.EffectiveBulkLineCount = SyncTexture.GetEffectiveBulkLineCount(BulkLineCount.intValue, BulkRateOfNetworkSpec.floatValue, width, stat.UnitByteLength, stat.PackUnitLength);
+            stat.BulkPixelCount = stat.EffectiveBulkLineCount * width;
+            stat.BulkUnitCount = stat.BulkPixelCount * stat.PackUnitLength;
+            stat.BulkByteCount = stat.BulkUnitCount * stat.UnitByteLength;
+            stat.DataLimitRatePerSerialization = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSerialization;
+            stat.DataLimitRatePerSecond = (float)stat.BulkByteCount / SyncTexture.MaxBulkBytesPerSecond;
+            stat.ChunkCount = SyncTexture.GetChunkCount(TextureHeight.intValue, stat.EffectiveBulkLineCount);
+            return stat;
         }
 
         void CheckTexture2DReadable(SerializedProperty property)

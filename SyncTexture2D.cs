@@ -1,16 +1,26 @@
-
 using UdonSharp;
 using UnityEngine;
 using System;
 using VRC.Udon;
 using VRC.SDK3.Rendering;
 using VRC.Udon.Common.Interfaces;
-
+using JetBrains.Annotations;
 
 namespace net.narazaka.vrchat.sync_texture
 {
     public abstract class SyncTexture2D : SyncTexture
     {
+        /// <summary>
+        /// must not change at runtime
+        /// </summary>
+        [SerializeField]
+        public int TextureWidth;
+        /// <summary>
+        /// must not change at runtime
+        /// </summary>
+        [SerializeField]
+        public int TextureHeight;
+        [PublicAPI]
         [SerializeField]
         public Texture Source;
         [SerializeField]
@@ -23,13 +33,10 @@ namespace net.narazaka.vrchat.sync_texture
         protected Color32[] SourceColors = new Color32[0];
 
         void StoreSourceColors(Color32[] colors, int startPixelIndex) => Array.Copy(colors, 0, SourceColors, startPixelIndex, colors.Length);
-        abstract protected Color[] UnpackReceiveColors();
-        abstract protected Color[] UnpackReceiveColorsPartial(int startReceivePixelIndex, int pixelLength);
 
         protected override bool ReadingSource => ReadIndex >= 0;
-        protected override int Width => Source.width;
-        protected override int Height => Source.height;
-        protected override void InitializeSourceColors() => SourceColors = new Color32[Width * Height];
+        protected override int Width => TextureWidth;
+        protected override int Height => TextureHeight;
         protected override int SourceColorsLength => SourceColors.Length;
 
         protected override void StartReadSource()
@@ -42,6 +49,7 @@ namespace net.narazaka.vrchat.sync_texture
             else
             {
                 ReadIndex = -1;
+                SourceColors = new Color32[Width * Height];
                 ReadPixels();
             }
         }
@@ -61,11 +69,11 @@ namespace net.narazaka.vrchat.sync_texture
             var colors = new Color32[Width * Height];
             if (request.hasError || !request.TryGetData(colors))
             {
-                Debug.LogError($"[SyncTexture] OnAsyncGpuReadbackComplete error");
+                Debug.LogError($"{LogPrefix} OnAsyncGpuReadbackComplete error");
                 CancelSync();
                 return;
             }
-            StoreSourceColors(colors, 0);
+            SourceColors = colors;
             StartSyncNext();
         }
 
@@ -78,7 +86,7 @@ namespace net.narazaka.vrchat.sync_texture
             }
             ReadIndex++;
             var startHeight = ReadIndex * GetPixelsBulkCount;
-            Debug.Log($"[SyncTexture] ReadPixels from height={startHeight}");
+            Debug.Log($"{LogPrefix} ReadPixels from height={startHeight}");
             if (startHeight >= Source.height)
             {
                 ReadIndex = -1;
@@ -94,19 +102,6 @@ namespace net.narazaka.vrchat.sync_texture
             }
             StoreSourceColors(colors32, startHeight * Source.width);
             SendCustomEventDelayedFrames(nameof(ReadPixels), 1);
-        }
-
-        protected override void ApplyReceiveColors()
-        {
-            Target.SetPixels(UnpackReceiveColors());
-            Target.Apply();
-        }
-
-        protected override void ApplyReceiveColorsPartial(int minHeight, int height)
-        {
-            var colors = UnpackReceiveColorsPartial(minHeight * Width, height * Width);
-            Target.SetPixels(0, minHeight, Width, height, colors);
-            Target.Apply();
         }
     }
 }

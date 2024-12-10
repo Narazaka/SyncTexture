@@ -59,6 +59,21 @@ namespace net.narazaka.vrchat.sync_texture.editor
                     SyncTextures.GetArrayElementAtIndex(SyncTextures.arraySize - 1).objectReferenceValue = syncTexture;
                     SetSelfToSyncTexture(syncTexture);
                 }
+                var syncTexturesSet = new HashSet<SyncTexture>();
+                var toRemove = new List<int>();
+                for (var i = 0; i < SyncTextures.arraySize; i++)
+                {
+                    var syncTexture = SyncTextures.GetArrayElementAtIndex(i).objectReferenceValue as SyncTexture;
+                    if (syncTexture == null || !syncTexturesSet.Add(syncTexture))
+                    {
+                        toRemove.Add(i);
+                    }
+                }
+                toRemove.Reverse();
+                foreach (var i in toRemove)
+                {
+                    SyncTextures.DeleteArrayElementAtIndex(i);
+                }
             }
 
             serializedObject.ApplyModifiedProperties();

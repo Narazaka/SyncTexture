@@ -1,26 +1,44 @@
 ﻿using JetBrains.Annotations;
-using System;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 using VRC.Udon.Common;
 
 namespace net.narazaka.vrchat.sync_texture
 {
     public abstract class SyncTexture : SyncTextureBase
     {
+        // cf. https://creators.vrchat.com/worlds/udon/networking/network-details
+        /// <summary>
+        /// Udon scripts with manual sync are limited to roughly 64690 bytes per serialization.
+        /// </summary>
+        public const int MaxBulkBytesPerSerialization = 64690;
+        /// <summary>
+        /// Udon scripts can send out about 11 kilobytes per second.
+        /// </summary>
+        public const int MaxBulkBytesPerSecond = 11264; // 11 * 1024;
+
+        /// <summary>
+        /// bulk send line count.
+        /// 
+        /// 0: auto calculate by network spec per second
+        /// -1: auto calculate by network spec per serialization
+        /// </summary>
         [SerializeField]
-        public int BulkCount = 5000;
+        public int BulkLineCount = 0;
+        /// <summary>
+        /// rate of network spec.
+        /// 
+        /// used when BulkLineCount is 0 or -1
+        /// </summary>
+        [SerializeField]
+        public float BulkRateOfNetworkSpec = 0.8f;
         [SerializeField]
         public float SyncInterval = 1f;
         [SerializeField]
-        public bool ShowProgress = true;
-        [SerializeField]
         public bool PrepareCallbackAsync;
 
-        [UdonSynced]
-        short SyncIndex = -1;
+        protected short SyncIndex = -1; // line index
 
         bool Prepareing;
 
@@ -33,29 +51,52 @@ namespace net.narazaka.vrchat.sync_texture
             get
             {
                 if (SyncIndex < 0) return 0f;
-                var dataLen = Width * Height * PackUnitLength;
-                return (float)SyncIndex * BulkCount / dataLen;
+                return (float)SyncIndex * BulkUnitCount / AllUnitCount;
             }
         }
+
+        [PublicAPI]
+        public float DataLimitRatePerSerialization => (float)BulkByteCount / MaxBulkBytesPerSerialization;
+
+        [PublicAPI]
+        public float DataLimitRatePerSecond => (float)BulkByteCount / MaxBulkBytesPerSecond;
+
+        [PublicAPI]
+        public static int GetChunkCount(int height, int effectiveBulkLineCount) => Mathf.CeilToInt((float) height / effectiveBulkLineCount);
+        [PublicAPI]
+        public int ChunkCount => GetChunkCount(Height, EffectiveBulkLineCount);
+
+        [PublicAPI]
+        public static int GetEffectiveBulkLineCount(int bulkLineCount, float bulkRateOfNetworkSpec, int width, int unitByteLength, int packUnitLength) =>
+            bulkLineCount == 0
+            ? (int)(MaxBulkBytesPerSecond * bulkRateOfNetworkSpec) / (width * packUnitLength * unitByteLength)
+            : bulkLineCount == -1
+            ? (int)(MaxBulkBytesPerSerialization * bulkRateOfNetworkSpec) / (width * packUnitLength * unitByteLength)
+            : bulkLineCount;
+        [PublicAPI]
+        public int EffectiveBulkLineCount => GetEffectiveBulkLineCount(BulkLineCount, BulkRateOfNetworkSpec, Width, UnitByteLength, PackUnitLength);
+
+        [PublicAPI]
+        int BulkPixelCount => EffectiveBulkLineCount * Width;
+        [PublicAPI]
+        int BulkUnitCount => BulkPixelCount * PackUnitLength;
+        [PublicAPI]
+        int BulkByteCount => BulkUnitCount * UnitByteLength;
+
+        int AllUnitCount => Width * Height * PackUnitLength;
+
+        [PublicAPI]
+        abstract public int UnitByteLength { get; }
+        abstract protected int PackUnitLength { get; }
 
         abstract protected int Width { get; }
         abstract protected int Height { get; }
         abstract protected bool ReadingSource { get; }
         abstract protected void StartReadSource();
         abstract protected void CancelReadSource();
-        abstract protected void ApplyReceiveColors();
-        abstract protected void ApplyReceiveColorsPartial(int minHeight, int height);
 
-        abstract protected int PackUnitLength { get; }
-
-        abstract protected void InitializeSyncColors(int pixelLength);
-        abstract protected void InitializeSourceColors();
-        abstract protected void InitializeReceiveColors();
         abstract protected int SourceColorsLength { get; }
-        abstract protected bool ReceiveColorsIsEmpty { get; }
-        abstract protected bool ReceiveColorsIsValid { get; }
-        abstract protected void CopySourceColorsToSyncColors(int startSourceIndex, int pixelLength);
-        abstract protected void CopySyncColorsToReceiveColors(int startReceiveIndex);
+        abstract protected void SyncColors(int startSourceIndex, int pixelLength);
 
         /// <summary>
         /// Take ownership and send texture data to other players.
@@ -63,7 +104,7 @@ namespace net.narazaka.vrchat.sync_texture
         [PublicAPI]
         public override bool StartSync()
         {
-            if (!CanStartSync || !SyncEnabled) return false;
+            if (!CanStartSync) return false;
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
             Callback(nameof(SyncTextureCallbackListener.OnPreSync));
             if (PrepareCallbackAsync)
@@ -97,9 +138,8 @@ namespace net.narazaka.vrchat.sync_texture
                 Callback(nameof(SyncTextureCallbackListener.OnPrepareCancel));
             }
             Prepareing = false;
-            InitializeSyncColors(0);
             QueueSerialization();
-            Debug.Log($"[SyncTexture] Send Canceled");
+            Debug.Log($"{LogPrefix} Send Canceled");
             Callback(nameof(SyncTextureCallbackListener.OnSyncCanceled));
             return true;
         }
@@ -120,7 +160,6 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void PrepareSync()
         {
-            InitializeSourceColors();
             StartReadSource();
         }
 
@@ -139,81 +178,33 @@ namespace net.narazaka.vrchat.sync_texture
             }
             ++SyncIndex;
             var len = SourceColorsLength;
-            var bulkPixelCount = BulkCount / PackUnitLength;
-            var startIndex = SyncIndex * bulkPixelCount;
-            var count = Mathf.Min(bulkPixelCount, len - startIndex);
+            var startIndex = SyncIndex * BulkPixelCount;
+            var count = Mathf.Min(BulkPixelCount, len - startIndex);
             if (count <= 0)
             {
                 SyncIndex = -1;
-                InitializeSyncColors(0);
                 QueueSerialization();
+                Debug.Log($"{LogPrefix} Sent");
+                Callback(nameof(SyncTextureCallbackListener.OnSyncComplete));
                 return;
             }
-            Debug.Log($"[SyncTexture] SyncNext from height={startIndex}/{len}");
-            InitializeSyncColors(count);
-            CopySourceColorsToSyncColors(startIndex, count);
+            Debug.Log($"{LogPrefix} SyncNext from height={startIndex}/{len}");
+            SyncColors(startIndex, count);
             QueueSerialization();
         }
 
-        public override void OnPostSerialization(SerializationResult result)
+        // called by one data callback
+        public void OnOneSyncDone(bool success)
         {
             if (SyncIndex == -2)
             {
                 return;
             }
-            if (SyncIndex == -1)
-            {
-                Debug.Log($"[SyncTexture] Sent");
-                Callback(nameof(SyncTextureCallbackListener.OnSyncComplete));
-                return;
-            }
-            if (SyncIndex >= 0)
-            {
-                Callback(nameof(SyncTextureCallbackListener.OnSync));
-                SendCustomEventDelayedSeconds(nameof(SyncNext), SyncInterval);
-            }
+            Callback(nameof(SyncTextureCallbackListener.OnSync));
+            SendCustomEventDelayedSeconds(nameof(SyncNext), SyncInterval);
         }
 
-        public override void OnDeserialization()
-        {
-            if (SyncIndex < 0)
-            {
-                if (ReceiveColorsIsEmpty) return;
-                if (!ShowProgress)
-                {
-                    ApplyReceiveColors();
-                }
-                if (SyncIndex == -2)
-                {
-                    Debug.Log($"[SyncTexture] Receive Canceled");
-                    Callback(nameof(SyncTextureCallbackListener.OnReceiveCanceled));
-                    return;
-                }
-                Debug.Log($"[SyncTexture] Received");
-                Callback(nameof(SyncTextureCallbackListener.OnReceiveComplete));
-                return;
-            }
-
-            var packUnitLength = PackUnitLength;
-            if (SyncIndex == 0 || !ReceiveColorsIsValid)
-            {
-                InitializeReceiveColors();
-                Callback(nameof(SyncTextureCallbackListener.OnReceiveStart));
-            }
-            CopySyncColorsToReceiveColors(SyncIndex * BulkCount);
-            if (ShowProgress)
-            {
-                var minHeight = SyncIndex * BulkCount / Width / packUnitLength;
-                var maxHeight = Mathf.Min((SyncIndex + 1) * BulkCount / Width / packUnitLength, Height);
-                var height = maxHeight - minHeight;
-                if (height == 0) return;
-                Debug.Log($"[SyncTexture] Deserialized {minHeight}->{maxHeight}({height}) datalen={height * Width * packUnitLength}");
-                ApplyReceiveColorsPartial(minHeight, height);
-            }
-            Callback(nameof(SyncTextureCallbackListener.OnReceive));
-        }
-
-        void Callback(string eventName)
+        protected void Callback(string eventName)
         {
             if (CallbackListeners != null)
             {
@@ -226,11 +217,8 @@ namespace net.narazaka.vrchat.sync_texture
 
         void QueueSerialization()
         {
-            RequestSerialization();
-#if UNITY_EDITOR
-            OnPostSerialization(default);
-            OnDeserialization();
-#endif
         }
+
+        protected string LogPrefix => $"[SyncTexture] ({name})";
     }
 }
