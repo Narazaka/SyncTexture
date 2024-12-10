@@ -41,7 +41,7 @@ namespace net.narazaka.vrchat.sync_texture
 
         public void ApplyReceiveColorsPartial(SyncTextureData8 data)
         {
-            Debug.Log($"[SyncTexture] ({name}) ApplyReceiveColorsPartial() [ReceiveEnabled={ReceiveEnabled}]");
+            Debug.Log($"{LogPrefix} ApplyReceiveColorsPartial() [ReceiveEnabled={ReceiveEnabled}]");
             Callback(nameof(SyncTextureCallbackListener.OnReceive));
             if (!ReceiveEnabled) return;
             var syncIndex = Array.IndexOf(DataList, data);

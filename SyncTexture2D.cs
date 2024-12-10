@@ -69,7 +69,7 @@ namespace net.narazaka.vrchat.sync_texture
             var colors = new Color32[Width * Height];
             if (request.hasError || !request.TryGetData(colors))
             {
-                Debug.LogError($"[SyncTexture] OnAsyncGpuReadbackComplete error");
+                Debug.LogError($"{LogPrefix} OnAsyncGpuReadbackComplete error");
                 CancelSync();
                 return;
             }
@@ -86,7 +86,7 @@ namespace net.narazaka.vrchat.sync_texture
             }
             ReadIndex++;
             var startHeight = ReadIndex * GetPixelsBulkCount;
-            Debug.Log($"[SyncTexture] ReadPixels from height={startHeight}");
+            Debug.Log($"{LogPrefix} ReadPixels from height={startHeight}");
             if (startHeight >= Source.height)
             {
                 ReadIndex = -1;

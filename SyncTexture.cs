@@ -139,7 +139,7 @@ namespace net.narazaka.vrchat.sync_texture
             }
             Prepareing = false;
             QueueSerialization();
-            Debug.Log($"[SyncTexture] Send Canceled");
+            Debug.Log($"{LogPrefix} Send Canceled");
             Callback(nameof(SyncTextureCallbackListener.OnSyncCanceled));
             return true;
         }
@@ -184,11 +184,11 @@ namespace net.narazaka.vrchat.sync_texture
             {
                 SyncIndex = -1;
                 QueueSerialization();
-                Debug.Log($"[SyncTexture] Sent");
+                Debug.Log($"{LogPrefix} Sent");
                 Callback(nameof(SyncTextureCallbackListener.OnSyncComplete));
                 return;
             }
-            Debug.Log($"[SyncTexture] SyncNext from height={startIndex}/{len}");
+            Debug.Log($"{LogPrefix} SyncNext from height={startIndex}/{len}");
             SyncColors(startIndex, count);
             QueueSerialization();
         }
@@ -218,5 +218,7 @@ namespace net.narazaka.vrchat.sync_texture
         void QueueSerialization()
         {
         }
+
+        protected string LogPrefix => $"[SyncTexture] ({name})";
     }
 }
