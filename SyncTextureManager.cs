@@ -34,6 +34,12 @@ namespace net.narazaka.vrchat.sync_texture
         {
             if (!Networking.IsOwner(gameObject)) return;
 
+            if (index < 0 || index >= SyncTextures.Length)
+            {
+                Debug.LogError($"[SyncTextureManager] RequestSyncTextureByIndex({index}) index out of range SyncTextures.Length=({SyncTextures.Length})");
+                return;
+            }
+
             var existIndex = System.Array.IndexOf(SendIndexQueue, (sbyte)index);
             Debug.Log($"[SyncTextureManager] RequestSyncTextureByIndex({index}) exist queue index={existIndex}");
             if (existIndex != -1)
