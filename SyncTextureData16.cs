@@ -12,7 +12,7 @@ namespace net.narazaka.vrchat.sync_texture
         [SerializeField]
         SyncTexture2D16 SyncTexture2D;
         [UdonSynced, NonSerialized]
-        public ushort[] Data = new ushort[0];
+        public ushort[] Data;
 
         public void Send(ushort[] data)
         {
@@ -25,10 +25,10 @@ namespace net.narazaka.vrchat.sync_texture
             SyncTexture2D.OnOneSyncDone(result.success);
         }
 
-        public override void OnDeserialization()
+        protected override bool DataIsNull => Data == null;
+        protected override bool DataIsEmpty => Data.Length == 0;
+        protected override void ApplyReceiveData()
         {
-            if (Data == null || Data.Length == 0) return;
-
             SyncTexture2D.ApplyReceiveColorsPartial(this);
         }
     }
